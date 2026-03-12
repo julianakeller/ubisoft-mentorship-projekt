@@ -93,6 +93,8 @@ class MENTORSHIPPROJEKT_API UGameTimeSubsystem : public UWorldSubsystem, public 
 
 	const FInGameTime& GetCurrentTime() const;
 	
+	float ToSeconds(const float InGameMinutes);
+	
 	UPROPERTY(BlueprintAssignable)
 	FOnHourChanged OnHourChanged;
 	
@@ -113,7 +115,7 @@ class MENTORSHIPPROJEKT_API UGameTimeSubsystem : public UWorldSubsystem, public 
 	
 private:
 	float AccumulatedTime = 0.f;
-	float TimeScale = 60.f; // 1 real time second = 60 in-game seconds
+	float TimeScale = 60.f; // 1 real time second = 60 in-game seconds = 1 in-game minute
 	
 	UPROPERTY()
 	FInGameTime CurrentTime = FInGameTime();

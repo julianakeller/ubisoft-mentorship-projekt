@@ -25,7 +25,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Economy")
 	float BasePrice = 1.f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Production")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Production")
 	TObjectPtr<URecipeDefinition> Recipe;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Decay")

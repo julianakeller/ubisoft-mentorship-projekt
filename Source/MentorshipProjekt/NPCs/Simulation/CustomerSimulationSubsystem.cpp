@@ -16,10 +16,7 @@ void UCustomerSimulationSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 	
 	Super::Initialize(Collection);
 	
-	FCoreDelegates::OnPostEngineInit.AddLambda([this]()
-	{
-		LoadCustomerDataAssets();
-	});
+	LoadCustomerDataAssets();
 }
 
 void UCustomerSimulationSubsystem::LoadCustomerDataAssets()
@@ -103,7 +100,7 @@ void UCustomerSimulationSubsystem::LoadCustomerDataAssets()
 	
 	if (ProfessionDataAssets.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CustomerSimulationSubsystem: No Profession Data Assets found."));
+		UE_LOG(LogTemp, Warning, TEXT("LoadCustomerDataAssets: No Profession Data Assets found."));
 	}
 	
 	if (HealthConditionDataAssets.Num() == 0)
@@ -351,7 +348,7 @@ void UCustomerSimulationSubsystem::SelectNewCustomerProfession(FCustomerInstance
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CreateCustomerInstance: No ProfessionDataAssets found."));
+		UE_LOG(LogTemp, Warning, TEXT("SelectNewProfession: No ProfessionDataAssets found."));
 	}
 }
 

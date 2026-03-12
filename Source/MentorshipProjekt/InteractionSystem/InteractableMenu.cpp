@@ -11,7 +11,7 @@ void AInteractableMenu::HandleInteraction(AActor* Character)
 	if (!ShiftMenuWidgetClass)
 		return;
 
-	if (UMenuManager* MenuManager = GetGameInstance()->GetSubsystem<UMenuManager>())
+	if (UMenuManager* MenuManager = GetWorld()->GetSubsystem<UMenuManager>())
 	{
 		MenuManager->ToggleMenu(ShiftMenuWidgetClass, this);
 	}
@@ -40,7 +40,7 @@ FText AInteractableMenu::GetInteractionText() const
 
 bool AInteractableMenu::IsMenuOpen() const
 {
-	if (UMenuManager* MenuManager = GetGameInstance()->GetSubsystem<UMenuManager>())
+	if (UMenuManager* MenuManager = GetWorld()->GetSubsystem<UMenuManager>())
 	{
 		return MenuManager->IsMenuOpen();
 	}

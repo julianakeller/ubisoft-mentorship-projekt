@@ -7,6 +7,20 @@
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "MentorshipProjekt/Public/GameTimeSubsystem.h"
+
+
+void UMenuManager::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Collection.InitializeDependency(UGameTimeSubsystem::StaticClass());
+	
+	GameTimeSubsystem = GetWorld()->GetSubsystem<UGameTimeSubsystem>();
+	
+	if (!GameTimeSubsystem)
+	{
+			UE_LOG(LogTemp, Error, TEXT("MenuManager: GameTimeSubsystem is nullptr"));
+	}
+}
 
 void UMenuManager::ToggleMenu(TSubclassOf<UBaseMenuWidget> MenuClass, AInteractableBase* Source)
 {
@@ -35,20 +49,7 @@ void UMenuManager::ToggleMenu(TSubclassOf<UBaseMenuWidget> MenuClass, AInteracta
 
 void UMenuManager::PauseTime(bool Pause)
 {
-	if (Pause)
-	{
-		if (UGameTimeSubsystem* TimeSubsystem = GetWorld()->GetSubsystem<UGameTimeSubsystem>())
-		{
-			TimeSubsystem->CurrentTimeSpeed = ETimeSpeed::Paused;
-		}
-	}
-	else
-	{
-		if (UGameTimeSubsystem* TimeSubsystem = GetWorld()->GetSubsystem<UGameTimeSubsystem>())
-		{
-			TimeSubsystem->CurrentTimeSpeed = ETimeSpeed::Normal; //ToDo store time speed before paused in GameTimeSubsystem
-		}
-	}
+	GameTimeSubsystem->SetPaused(Pause);
 }
 
 void UMenuManager::OpenMenu(TSubclassOf<UBaseMenuWidget> MenuClass, AInteractableBase* Source)
@@ -71,6 +72,11 @@ void UMenuManager::OpenMenu(TSubclassOf<UBaseMenuWidget> MenuClass, AInteractabl
 
 void UMenuManager::CloseCurrentMenu()
 {
+	if (GameTimeSubsystem)
+	{
+		GameTimeSubsystem->CurrentTimeSpeed = ETimeSpeed::Normal;
+	}
+	
 	if (AInteractableBase* Source = CurrentMenu->SourceInteractable)
 	{
 		Source->SetInteractionState(EInteractionState::Available);

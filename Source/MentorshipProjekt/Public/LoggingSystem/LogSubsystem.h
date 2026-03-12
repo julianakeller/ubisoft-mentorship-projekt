@@ -85,8 +85,6 @@ private:
 
 	UPROPERTY()
 	TArray<FLogMessage> MessageHistory;
-	
-	UGameTimeSubsystem* GameTimeSubsystem;
 
 	void CleanupOldMessages();
 };

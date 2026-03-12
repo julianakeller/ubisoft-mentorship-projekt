@@ -137,6 +137,11 @@ const FInGameTime& UGameTimeSubsystem::GetCurrentTime() const
 	return CurrentTime;
 }
 
+float UGameTimeSubsystem::ToSeconds(const float InGameMinutes)
+{
+	return InGameMinutes * 60.f / TimeScale;
+}
+
 void UGameTimeSubsystem::SetPaused(bool bPause)
 {
 	bIsPaused = bPause;

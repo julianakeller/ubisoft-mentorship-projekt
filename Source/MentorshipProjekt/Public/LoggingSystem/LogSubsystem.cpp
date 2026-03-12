@@ -8,18 +8,17 @@
 
 void ULogSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	Collection.InitializeDependency(UGameTimeSubsystem::StaticClass());
-
 	Super::Initialize(Collection);
 	
-	GameTimeSubsystem = GetWorld()->GetSubsystem<UGameTimeSubsystem>();
+	Collection.InitializeDependency(UGameTimeSubsystem::StaticClass());
 }
 
 void ULogSubsystem::AddLogMessage(const FText& Message, ELogMessageType Type)
 {
+	UGameTimeSubsystem* GameTimeSubsystem = GetWorld()->GetSubsystem<UGameTimeSubsystem>();
 	if (!GameTimeSubsystem)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GameTimeSubsystem not found."));
+		UE_LOG(LogTemp, Error, TEXT("LogSubsystem: GameTimeSubsystem not found."));
 		return;
 	}
 
@@ -56,6 +55,11 @@ TArray<FLogMessage> ULogSubsystem::GetRecentMessages() const
 
 void ULogSubsystem::CleanupOldMessages()
 {
+	UGameTimeSubsystem* GameTimeSubsystem = GetWorld()->GetSubsystem<UGameTimeSubsystem>();
+	if (!GameTimeSubsystem)
+	{
+		return;
+	}
 	MessageHistory.RemoveAll([&](const FLogMessage& Msg){return FInGameTime::DifferenceInMinutes(
 	Msg.Timestamp,
 	GameTimeSubsystem->GetCurrentTime()) > StoredHistoryDuration;});

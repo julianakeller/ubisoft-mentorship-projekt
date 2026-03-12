@@ -21,6 +21,7 @@ enum class EInteractionState : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractSignature, AActor*, Interactor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractSecondarySignature, AActor*, Interactor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRangeSignature, AActor*, Interactor);
 
 UCLASS()
@@ -36,7 +37,9 @@ public:
 	virtual void OnInteractionRangeEntered() override;
 	virtual void OnInteractionRangeExited() override;
 	virtual void OnInteracted(AActor* Character) override;
+	virtual void OnInteractedSecondary(AActor* Character) override;
 	virtual void HandleInteraction(AActor* Character) override;
+	virtual void HandleInteractionSecondary(AActor* Character) override;
 	virtual bool CanBeInteracted() const override;
 	virtual void SetInteractionText(FText NewInteractionText) override;
 	virtual FText GetInteractionText() const override {return InteractionText;};
@@ -48,6 +51,9 @@ public:
 	//Delegates
 	UPROPERTY(BlueprintAssignable)
 	FOnInteractSignature OnInteractEvent;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnInteractSignature OnInteractSecondaryEvent;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnRangeSignature OnRangeEnteredEvent;

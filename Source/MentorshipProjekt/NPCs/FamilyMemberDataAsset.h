@@ -7,6 +7,7 @@
 #include "Engine/DataAsset.h"
 #include "MentorshipProjekt/Areas/WorkAreaBase.h"
 #include "Skills/SkillDataAsset.h"
+#include "Skills/SkillProgress.h"
 #include "FamilyMemberDataAsset.generated.h"
 
 /**

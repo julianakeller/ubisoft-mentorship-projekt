@@ -10,24 +10,6 @@
  * 
  */
 
-class USkillDataAsset;
-
-USTRUCT(BlueprintType)
-struct FSkillProgress
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	//TObjectPtr used for UCLASS/USTRUCT member variables -> better garbage collection & debugging
-	TObjectPtr<USkillDataAsset> Skill;
-
-	UPROPERTY()
-	int32 CurrentLevel = 0;
-
-	UPROPERTY()
-	float CurrentXP = 0.f;
-};
-
 UCLASS(BlueprintType)
 class MENTORSHIPPROJEKT_API USkillDataAsset : public UPrimaryDataAsset
 {

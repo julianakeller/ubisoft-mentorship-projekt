@@ -29,7 +29,9 @@ public:
 	virtual void OnInteractionRangeEntered() = 0;
 	virtual void OnInteractionRangeExited() = 0;
 	virtual void OnInteracted(AActor* Character) = 0;
+	virtual void OnInteractedSecondary(AActor* Character) = 0;
 	virtual void HandleInteraction(AActor* Character) = 0;
+	virtual void HandleInteractionSecondary(AActor* Character) = 0;
 	virtual bool CanBeInteracted() const = 0;
 	
 	/* Setter and Getter for Interaction Text*/

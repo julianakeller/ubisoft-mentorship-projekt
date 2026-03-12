@@ -20,4 +20,10 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="UI")
 	TSubclassOf<class UUserWidget> GameTimeWidgetClass;
+	
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<class UUserWidget> LogWindowWidgetClass;
+	
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<class UUserWidget> InventoryOverviewWidgetClass;
 };

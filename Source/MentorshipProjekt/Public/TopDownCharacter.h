@@ -8,6 +8,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/Character.h"
+#include "MentorshipProjekt/NPCs/Skills/SkillDataAsset.h"
+#include "MentorshipProjekt/NPCs/Skills/SkillProgress.h"
 #include "TopDownCharacter.generated.h"
 
 UCLASS()
@@ -18,6 +20,11 @@ class MENTORSHIPPROJEKT_API ATopDownCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	ATopDownCharacter();
+	
+	//Maps SkillNames to the skill's progress
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Skills")
+	TMap<FName, FSkillProgress> AcquiredSkills;
+	// ToDo is this the best way?
 
 protected:
 	// Called when the game starts or when spawned
@@ -37,6 +44,8 @@ protected:
 	
 	void Interact();
 	
+	void InteractSecondary();
+	
 	void CloseMenu();
 
 	UPROPERTY(EditDefaultsOnly, Category="Camera")
@@ -53,6 +62,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category="Interaction")
 	UInputAction* IA_Interact;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Interaction")
+	UInputAction* IA_InteractSecondary;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Interaction")
 	UInputAction* IA_CloseMenu;

@@ -6,18 +6,18 @@
 #include "PurchasableDefinition.h"
 #include "InventoryStack.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FInventoryStackKey
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	UPurchasableDefinition* Definition = nullptr;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	EPurchasableQuality Quality = EPurchasableQuality::Normal;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	EPurchasableFreshness Freshness = EPurchasableFreshness::New;
 
 	bool operator==(const FInventoryStackKey& Other) const
@@ -34,12 +34,9 @@ struct FInventoryStack
 	GENERATED_BODY()
 
 	UPROPERTY()
-	UPurchasableDefinition* Definition = nullptr;
-
-	UPROPERTY()
 	FInventoryStackKey Key = FInventoryStackKey();
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	int32 Quantity = 0;
 
 	UPROPERTY()
@@ -50,7 +47,7 @@ struct FInventoryStack
 	
 	bool IsValid() const
 	{
-		return Definition != nullptr && Quantity > 0;
+		return Quantity > 0;
 	}
 };
 

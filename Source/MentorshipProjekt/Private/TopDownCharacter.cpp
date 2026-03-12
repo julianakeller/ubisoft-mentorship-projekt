@@ -90,6 +90,7 @@ void ATopDownCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EIC->BindAction(IA_LookAction, ETriggerEvent::Triggered, this, &ATopDownCharacter::Look);
 		EIC->BindAction(IA_ZoomAction, ETriggerEvent::Triggered, this, &ATopDownCharacter::Zoom);
 		EIC->BindAction(IA_Interact, ETriggerEvent::Triggered, this, &ATopDownCharacter::Interact);
+		EIC->BindAction(IA_InteractSecondary, ETriggerEvent::Triggered, this, &ATopDownCharacter::InteractSecondary);
 		//EIC->BindAction(IA_CloseMenu, ETriggerEvent::Triggered, this, &ATopDownCharacter::CloseMenu);
 	}
 }
@@ -184,9 +185,28 @@ void ATopDownCharacter::Interact()
 	}
 }
 
+void ATopDownCharacter::InteractSecondary()
+{
+	TArray<AActor*> OverlappingActors;
+	
+	GetCapsuleComponent()->GetOverlappingActors(OverlappingActors);
+	
+	for (AActor* OverlappingActor : OverlappingActors)
+	{
+		if (OverlappingActor->GetClass()->ImplementsInterface(UInteractablesInterface::StaticClass()))
+		{
+			if (IInteractablesInterface* InteractablesInterface = Cast<IInteractablesInterface>(OverlappingActor))
+			{
+				InteractablesInterface->OnInteractedSecondary(this);
+				break;
+			}
+		}
+	}
+}
+
 void ATopDownCharacter::CloseMenu()
 {
-	if (UMenuManager* MenuManager = GetGameInstance()->GetSubsystem<UMenuManager>())
+	if (UMenuManager* MenuManager = GetWorld()->GetSubsystem<UMenuManager>())
 	{
 		// Pass nullptr to close any open menu
 		MenuManager->ToggleMenu(nullptr, nullptr);

@@ -106,6 +106,16 @@ void AInteractableBase::OnInteracted(AActor* Character)
 	HandleInteraction(Character);
 }
 
+void AInteractableBase::OnInteractedSecondary(AActor* Character)
+{
+	if (!CanBeInteracted())
+	{
+		return;
+	}
+	
+	HandleInteractionSecondary(Character);
+}
+
 void AInteractableBase::HandleInteraction(AActor* Character)
 {
 	//Debug Message:
@@ -113,6 +123,13 @@ void AInteractableBase::HandleInteraction(AActor* Character)
 	
 	// Execute Interactions in Components:
 	OnInteractEvent.Broadcast(Character);
+}
+
+void AInteractableBase::HandleInteractionSecondary(AActor* Character)
+{
+	GEngine->AddOnScreenDebugMessage(-1,2.f,FColor::Orange, "Interacted!");
+	
+	OnInteractSecondaryEvent.Broadcast(Character);
 }
 
 bool AInteractableBase::CanBeInteracted() const

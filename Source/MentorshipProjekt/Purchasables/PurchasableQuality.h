@@ -6,6 +6,7 @@
 UENUM(BlueprintType)
 enum class EPurchasableQuality : uint8
 {
+	Terrible	UMETA(DisplayName = "Terrible"),
 	Poor        UMETA(DisplayName="Poor"),
 	Normal      UMETA(DisplayName="Normal"),
 	Good        UMETA(DisplayName="Good"),

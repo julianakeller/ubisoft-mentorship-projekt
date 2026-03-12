@@ -22,7 +22,7 @@ class UGameTimeSubsystem;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
 
 UCLASS()
-class MENTORSHIPPROJEKT_API UPurchasableManagerSubsystem : public UGameInstanceSubsystem
+class MENTORSHIPPROJEKT_API UPurchasableManagerSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 	
@@ -33,8 +33,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	UPurchasableInstance* ProducePurchasable(UPurchasableDefinition* Definition, int32 WorkerSkillLevel);
 	
+	//Removes Purchasable from inventory if available
 	UFUNCTION(BlueprintCallable, Category="Inventory")
-	bool BuyPurchasable(UPurchasableDefinition* Definition, int32 Count);
+	bool RemovePurchasableIfAvailable(UPurchasableDefinition* Definition, int32 Count);
+	
+	// ToDo remove purchasables with specific quality, freshness or value
 	
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	EPurchasableFreshness GetFreshnessLevel(const float Freshness);
@@ -42,9 +45,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	EPurchasableQuality GetQualityLevel(const float Quality);
 	
-protected:
-	
 	TArray<FInventoryStack> GetAllStacks() const;
+	
+	TMap<UPurchasableDefinition*, int32> GetAllPurchasables() const;
 	
 	UFUNCTION(BlueprintPure, Category="Inventory")
 	float GetTotalInventoryValue() const;
@@ -68,5 +71,5 @@ private:
 
 	void UpdateStackFreshness(FInventoryStack& Stack, FInGameTime CurrentTime) const;
 
-	void RemoveExpiredItems();
+	void RemoveExpiredItems(FInventoryStack& Stack);
 };

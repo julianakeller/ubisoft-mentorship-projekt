@@ -38,11 +38,14 @@ public:
 	TArray<FRecipeIngredient> Ingredients;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTag RequiredSkill; //ToDo Skills class
+	FName RequiredSkill;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 RequiredSkillLevel = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FGameplayTag RequiredWorkstationTag; //ToDo
+	FName RequiredWorkstationTag; //ToDo
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float BaseProductionTimeInMinutes = 5.f;
 };

@@ -7,15 +7,19 @@
 #include "BaseMenuWidget.h"
 #include "MenuManager.generated.h"
 
+class UGameTimeSubsystem;
 /**
  * 
  */
 UCLASS()
-class MENTORSHIPPROJEKT_API UMenuManager : public UGameInstanceSubsystem
+class MENTORSHIPPROJEKT_API UMenuManager : public UWorldSubsystem
 {
 	GENERATED_BODY()
 	
 public:
+	
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	
 	void ToggleMenu(TSubclassOf<UBaseMenuWidget> MenuClass, AInteractableBase* Source = nullptr);
 
 	void CloseCurrentMenu();
@@ -33,4 +37,6 @@ private:
 	void OpenMenu(TSubclassOf<UBaseMenuWidget> MenuClass, AInteractableBase* Source = nullptr);
 	
 	void PauseTime(bool Pause);
+	
+	UGameTimeSubsystem* GameTimeSubsystem = nullptr;
 };

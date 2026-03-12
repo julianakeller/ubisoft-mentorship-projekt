@@ -104,7 +104,7 @@ public:
 		FamilyMemberData = DataAsset;
 	}
 	
-	void AddXP(FName SkillName, float XPAmount, float LearningMultiplier = 1.f)
+	/*void AddXP(FName SkillName, float XPAmount, float LearningMultiplier = 1.f)
 	{
 		if (XPAmount <= 0.f)
 		{
@@ -121,7 +121,7 @@ public:
 		SkillProgress->CurrentXP += XPAmount * LearningMultiplier * FamilyMemberData->LearningSpeedMultiplier;
 
 		HandleLevelUp(SkillProgress);
-	}
+	}*/ 
 	
 protected:
 	
@@ -213,7 +213,7 @@ protected:
 		LongTermHappiness += (Happiness - LongTermHappiness) * SmoothingRate;
 	}
 	
-	void HandleLevelUp(FSkillProgress* SkillProgress)
+	/*void HandleLevelUp(FSkillProgress* SkillProgress)
 	{
 		if (!SkillProgress)
 		{
@@ -233,5 +233,5 @@ protected:
 				break;
 			}
 		}
-	}
+	}*/
 };

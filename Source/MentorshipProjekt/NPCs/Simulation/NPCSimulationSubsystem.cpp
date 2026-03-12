@@ -8,6 +8,7 @@ void UNPCSimulationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	// Ensure LogSubsystem is created first
 	Collection.InitializeDependency(ULogSubsystem::StaticClass());
+	Collection.InitializeDependency(UGameTimeSubsystem::StaticClass());
 	
 	Super::Initialize(Collection);
 	
