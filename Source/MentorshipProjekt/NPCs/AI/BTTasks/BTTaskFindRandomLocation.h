@@ -23,5 +23,8 @@ public:
 	UPROPERTY(EditAnywhere, Category="Blackboard")
 	FBlackboardKeySelector LocationKey;
 	
+	UPROPERTY(EditAnywhere, Category="Navigation")
+	TSubclassOf<UNavigationQueryFilter> NavigationFilterClass;
+	
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };

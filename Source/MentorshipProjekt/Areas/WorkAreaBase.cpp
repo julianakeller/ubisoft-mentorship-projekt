@@ -57,7 +57,7 @@ void AWorkAreaBase::BeginPlay()
 	
 	//Defer to ensure workstations are initialized before gathering them
 	FTimerHandle Handle;
-	GetWorldTimerManager().SetTimer(Handle, this, &AWorkAreaBase::GatherWorkStations, 0.2f, false);
+	GetWorldTimerManager().SetTimer(Handle, this, &AWorkAreaBase::GatherWorkStations, 0.5f, false);
 }
 
 void AWorkAreaBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -87,7 +87,7 @@ void AWorkAreaBase::GatherWorkStations()
 	}
 
 	TArray<AActor*> OverlappingActors;
-	WorkAreaExtents->GetOverlappingActors(OverlappingActors, AInteractableBase::StaticClass());
+	WorkAreaExtents->GetOverlappingActors(OverlappingActors);
 
 	for (AActor* Actor : OverlappingActors)
 	{
@@ -103,12 +103,14 @@ void AWorkAreaBase::GatherWorkStations()
 				CustomerWorkstations.Add(Interactable);
 			}
 			WorkStations.Add(Interactable);
-			UE_LOG(LogTemp, Log, TEXT("WorkStation added: %s"), *Interactable->GetName());
+			UE_LOG(LogTemp, Log, TEXT("GetOverlappingActors: WorkStation added: %s"), *Interactable->GetName());
 		}
 		
 		// Find widget components to set area sign name:
 		TArray<UWidgetComponent*> WidgetComponents;
 		Actor->GetComponents<UWidgetComponent>(WidgetComponents);
+		
+		UE_LOG(LogTemp,Log,TEXT("GetOverlappingActors: Actor '%s' has %d widget components"),*Actor->GetName(),WidgetComponents.Num());
 
 		for (UWidgetComponent* WidgetComp : WidgetComponents)
 		{
@@ -116,15 +118,19 @@ void AWorkAreaBase::GatherWorkStations()
 			{
 				continue;
 			}
+			
+			UE_LOG(LogTemp,Log,TEXT("GetOverlappingActors: Checking WidgetComponent '%s'"),*WidgetComp->GetName());
 
-			UAreaSignWidget* AreaSignWidget = Cast<UAreaSignWidget>(WidgetComp->GetWidget());
+			UAreaSignWidget* AreaSignWidget = Cast<UAreaSignWidget>(WidgetComp->GetUserWidgetObject());
 
 			if (!AreaSignWidget)
 			{
 				continue;
 			}
+			
+			UE_LOG(LogTemp,Log,TEXT("GetOverlappingActors: Setting area name '%s' on AreaSignWidget"),*WorkAreaName.ToString());
 
-			AreaSignWidget->SetName(WorkAreaName);
+			AreaSignWidget->SetAreaName(WorkAreaName);
 		}
 	}
 	

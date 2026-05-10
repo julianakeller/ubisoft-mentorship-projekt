@@ -6,6 +6,7 @@
 #include "NavigationSystem.h"
 #include "NavigationSystemTypes.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "NavFilters/NavigationQueryFilter.h"
 
 UBTTaskFindRandomLocation::UBTTaskFindRandomLocation()
 {
@@ -32,8 +33,18 @@ EBTNodeResult::Type UBTTaskFindRandomLocation::ExecuteTask(UBehaviorTreeComponen
 	}
 
 	FNavLocation RandomLocation;
+	
+	FSharedConstNavQueryFilter QueryFilter;
 
-	if (NavSys->GetRandomReachablePointInRadius(Pawn->GetActorLocation(), SearchRadius, RandomLocation))
+	if (NavigationFilterClass)
+	{
+		QueryFilter = UNavigationQueryFilter::GetQueryFilter(
+			*NavSys->GetDefaultNavDataInstance(),
+			NavigationFilterClass
+		);
+	}
+
+	if (NavSys->GetRandomReachablePointInRadius(Pawn->GetActorLocation(), SearchRadius, RandomLocation, nullptr, QueryFilter))
 	{
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(LocationKey.SelectedKeyName, RandomLocation.Location);
 

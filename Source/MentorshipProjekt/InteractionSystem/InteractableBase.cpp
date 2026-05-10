@@ -90,7 +90,7 @@ void AInteractableBase::OnInteractedSecondary(AActor* Character)
 void AInteractableBase::HandleInteraction(AActor* Character)
 {
 	//Debug Message:
-	GEngine->AddOnScreenDebugMessage(-1,2.f,FColor::Green, "Interacted!");
+	//GEngine->AddOnScreenDebugMessage(-1,2.f,FColor::Green, "Interacted!");
 	
 	// Execute Interactions in Components:
 	OnInteractEvent.Broadcast(Character);
@@ -98,7 +98,7 @@ void AInteractableBase::HandleInteraction(AActor* Character)
 
 void AInteractableBase::HandleInteractionSecondary(AActor* Character)
 {
-	GEngine->AddOnScreenDebugMessage(-1,2.f,FColor::Orange, "Interacted!");
+	//GEngine->AddOnScreenDebugMessage(-1,2.f,FColor::Orange, "Interacted!");
 	
 	OnInteractSecondaryEvent.Broadcast(Character);
 }

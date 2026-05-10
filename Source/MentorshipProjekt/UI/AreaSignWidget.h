@@ -17,7 +17,7 @@ class MENTORSHIPPROJEKT_API UAreaSignWidget : public UUserWidget
 	
 public:
 	
-	void SetName(FName AreaNameToSet);
+	void SetAreaName(FName AreaNameToSet);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Work Area")
 	FName NameToSet;

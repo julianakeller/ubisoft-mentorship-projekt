@@ -3,7 +3,7 @@
 
 #include "AreaSignWidget.h"
 
-void UAreaSignWidget::SetName(FName AreaNameToSet)
+void UAreaSignWidget::SetAreaName(FName AreaNameToSet)
 {
 	if (AreaName)
 	{
