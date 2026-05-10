@@ -22,3 +22,11 @@ void UBaseMenuWidget::InitializeMenu(AInteractableBase* Source)
 {
 	SourceInteractable = Source;
 }
+
+void UBaseMenuWidget::OnMenuOpened()
+{
+}
+
+void UBaseMenuWidget::OnMenuClosed()
+{
+}

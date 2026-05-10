@@ -7,7 +7,12 @@
 #include "WorkAreaDropdownWidget.h"
 #include "Components/CanvasPanelSlot.h"
 #include "WorkerTimelineWidget.h"
+#include "MentorshipProjekt/Areas/WorkAreaBase.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/Border.h"
+#include "Components/CanvasPanel.h"
+#include "MentorshipProjekt/Areas/WorkAreaManager.h"
+#include "Shifts/ShiftManager.h"
 
 void UShiftBlockWidget::InitializeShift(const float InStartHour, const float InEndHour, const float InTimelineWidth, const float InTimelineHeight, UWorkerTimelineWidget* InParentTimeline)
 {
@@ -17,6 +22,8 @@ void UShiftBlockWidget::InitializeShift(const float InStartHour, const float InE
 	TimelineHeight = InTimelineHeight;
 	
 	ParentTimeline = InParentTimeline;
+	
+	SetResizingIndicatorVisibility(false, false);
 
 	UpdateVisual();
 }
@@ -25,10 +32,7 @@ void UShiftBlockWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	if (WorkAreaDropdown)
-	{
-		WorkAreaDropdown->OnWorkAreaChosen.AddDynamic(this, &UShiftBlockWidget::HandleWorkAreaSelected);
-	}
+	SetIsFocusable(true);
 }
 
 void UShiftBlockWidget::SetStartHour(float NewStart)
@@ -102,14 +106,26 @@ void UShiftBlockWidget::UpdateVisual() const
 //FReply -> returned to Slate (Unreal's UI system)
 FReply UShiftBlockWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	// Right click deletes shift
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		DeleteShift();
+		return FReply::Handled();
+	}
+	
 	//Only capture LMB clicks
-	if (!InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	if (InMouseEvent.GetEffectingButton() != EKeys::LeftMouseButton)
+	{
 		return FReply::Unhandled(); //Unhandled -> event passed on to parent widgets
+	}
 
 	//GetScreenSpacePosition -> mouse position in absolute screen pixels
 	//AbsoluteToLocal -> converts absolute position into local (widget) coordinates
 	float LocalX = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()).X;
-
+	const float Width = InGeometry.GetLocalSize().X;
+	
+	const float EdgeDetectionWidth = GetEdgeDetectionWidth(Width);
+	
 	if (LocalX <= EdgeDetectionWidth)
 	{
 		InteractionMode = EShiftInteractionMode::ResizingLeft;
@@ -122,12 +138,6 @@ FReply UShiftBlockWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 		InteractionMode = EShiftInteractionMode::ResizingRight;
 		return FReply::Handled().CaptureMouse(TakeWidget());
 	}
-	
-	// Click inside shift -> open work area selection dropdown
-	if (WorkAreaDropdown)
-	{
-		WorkAreaDropdown->ToggleDropdown();
-	}
 
 	return FReply::Handled(); //Don't pass clicks on shifts on to other widgets
 }
@@ -135,9 +145,16 @@ FReply UShiftBlockWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, c
 //Called when mosue moving over widget or anywhere when captured
 FReply UShiftBlockWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	// Show resize indicators if hovering over edges:
+	float LocalX = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()).X;
+	float Width = InGeometry.GetLocalSize().X;
+	UpdateResizingIndicator(LocalX, Width);
+	
 	//Mouse moving only matters when resizing:
 	if (InteractionMode == EShiftInteractionMode::None)
+	{
 		return FReply::Unhandled();
+	}
 	
 	float DeltaX = InMouseEvent.GetCursorDelta().X; //How many pixels cursor moved since last frame
 	float DeltaHours = (DeltaX / TimelineWidth) * 24.f;
@@ -165,11 +182,56 @@ FReply UShiftBlockWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, con
 void UShiftBlockWidget::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
+	SetKeyboardFocus();
 }
 
 void UShiftBlockWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 {
 	Super::NativeOnMouseLeave(InMouseEvent);
+	
+	if (APlayerController* PC = GetOwningPlayer())
+	{
+		PC->SetInputMode(FInputModeGameAndUI());
+	}
+	
+	SetResizingIndicatorVisibility(false, false);
+}
+
+FReply UShiftBlockWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == EKeys::Delete || InKeyEvent.GetKey() == EKeys::X)
+	{
+		DeleteShift();
+
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void UShiftBlockWidget::DeleteShift()
+{
+	// Remove from ShiftManager
+	if (ParentTimeline && ParentTimeline->ShiftManager && LinkedShiftData)
+	{
+		FWorkerSchedule* Schedule = ParentTimeline->ShiftManager->GetWorkerSchedule(
+			ParentTimeline->WorkerID);
+
+		if (Schedule)
+		{
+			int32 ShiftIndex = Schedule->Shifts.IndexOfByKey(*LinkedShiftData);
+			if (ShiftIndex != INDEX_NONE)
+			{
+				ParentTimeline->ShiftManager->RemoveShift(ParentTimeline->WorkerID, ShiftIndex);
+			}
+		}
+	}
+
+	// Remove widget from canvas
+	if (ParentTimeline && ParentTimeline->TimelineCanvas)
+	{
+		ParentTimeline->TimelineCanvas->RemoveChild(this);
+	}
 }
 
 void UShiftBlockWidget::HandleWorkAreaSelected(FName SelectedArea)
@@ -185,4 +247,67 @@ void UShiftBlockWidget::HandleWorkAreaSelected(FName SelectedArea)
 void UShiftBlockWidget::UpdateShiftAppearance()
 {
 	
+}
+
+void UShiftBlockWidget::InitializeShiftAppearance()
+{
+	if (!LinkedShiftData)
+	{
+		return;
+	}
+
+	UWorkAreaManager* Manager = GetWorld()->GetSubsystem<UWorkAreaManager>();
+	if (!Manager)
+	{
+		return;
+	}
+
+	const AWorkAreaBase* Area = Manager->GetWorkAreaByName(LinkedShiftData->AssignedArea);
+
+	if (!Area)
+	{
+		return;
+	}
+
+	const FLinearColor Color = Area->WorkAreaColor;
+
+	if (ShiftBorder)
+	{
+		ShiftBorder->SetBrushColor(Color);
+	}
+}
+
+void UShiftBlockWidget::UpdateResizingIndicator(float LocalX, float Width)
+{
+	if (!ResizingIndicatorLeft || !ResizingIndicatorRight)
+	{
+		return;
+	}
+	
+	const float EdgeDetectionWidth = GetEdgeDetectionWidth(Width);
+
+	const bool bLeft = LocalX <= EdgeDetectionWidth;
+	const bool bRight = LocalX >= Width - EdgeDetectionWidth;
+	
+	SetResizingIndicatorVisibility(bLeft, bRight);
+}
+
+float UShiftBlockWidget::GetEdgeDetectionWidth(float Width)
+{
+	return FMath::Clamp(Width * EdgeDetectionRatio,
+	8.f,   // minimum usable size
+	30.f);   // maximum reasonable size
+}
+
+void UShiftBlockWidget::SetResizingIndicatorVisibility(bool bLeft, bool bRight)
+{
+	if (ResizingIndicatorLeft)
+	{
+		ResizingIndicatorLeft->SetVisibility(bLeft ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+	}
+
+	if (ResizingIndicatorRight)
+	{
+		ResizingIndicatorRight->SetVisibility(bRight ? ESlateVisibility::Visible : ESlateVisibility::Hidden);
+	}
 }

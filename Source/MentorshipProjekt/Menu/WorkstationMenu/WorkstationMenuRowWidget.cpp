@@ -19,11 +19,11 @@ void UWorkstationMenuRowWidget::NativeConstruct()
 
 	if (TargetAmount)
 	{
-		TargetAmount->OnValueChanged.AddDynamic(this, &UWorkstationMenuRowWidget::OnAmountValueChanged);
+		TargetAmount->OnValueCommitted.AddDynamic(this, &UWorkstationMenuRowWidget::OnAmountValueComitted);
 	}
 	if (TargetPriority)
 	{
-		TargetPriority->OnValueChanged.AddDynamic(this, &UWorkstationMenuRowWidget::OnPriorityValueChanged);
+		TargetPriority->OnValueCommitted.AddDynamic(this, &UWorkstationMenuRowWidget::OnPriorityValueComitted);
 	}
 }
 
@@ -38,7 +38,7 @@ void UWorkstationMenuRowWidget::InitializeRow(UInteractableWorkstationComponent*
 		PurchasableName->SetText(FText::FromName(Purchasable->ItemName));
 	}
 
-	if (FWorkstationProductionSetting* Setting = WorkstationComponent->GetSetting(SettingIndex))
+	if (const FWorkstationProductionSetting* Setting = WorkstationComponent->GetProductionSetting(SettingIndex))
 	{
 		if (TargetAmount)
 		{
@@ -56,42 +56,54 @@ void UWorkstationMenuRowWidget::InitializeRow(UInteractableWorkstationComponent*
 void UWorkstationMenuRowWidget::OnEnableButtonClicked()
 {
 	if (!WorkstationComponent)
+	{
 		return;
+	}
 
-	FWorkstationProductionSetting* Setting = WorkstationComponent->GetSetting(SettingIndex);
+	const FWorkstationProductionSetting* Setting = WorkstationComponent->GetProductionSetting(SettingIndex);
 
 	if (!Setting)
+	{
 		return;
+	}
 
-	Setting->bEnabled = !Setting->bEnabled;
+	FWorkstationProductionSetting ModifiedSetting = *Setting;
+	ModifiedSetting.bEnabled = !ModifiedSetting.bEnabled;
 
+	WorkstationComponent->SetProductionSetting(ModifiedSetting);
+	
 	RefreshVisuals();
 }
 
-void UWorkstationMenuRowWidget::OnAmountValueChanged(float Value)
+void UWorkstationMenuRowWidget::OnAmountValueComitted(float Value, ETextCommit::Type CommitType)
 {
 	if (!WorkstationComponent)
 		return;
 
-	FWorkstationProductionSetting* Setting = WorkstationComponent->GetSetting(SettingIndex);
+	const FWorkstationProductionSetting* Setting = WorkstationComponent->GetProductionSetting(SettingIndex);
 
 	if (!Setting)
 		return;
 
-	Setting->TargetAmount = FMath::RoundToInt(Value);
+	FWorkstationProductionSetting ModifiedSetting = *Setting;
+	ModifiedSetting.TargetAmount = FMath::RoundToInt(Value);
+	
+	WorkstationComponent->SetProductionSetting(ModifiedSetting);
 }
 
-void UWorkstationMenuRowWidget::OnPriorityValueChanged(float Value)
+void UWorkstationMenuRowWidget::OnPriorityValueComitted(float Value, ETextCommit::Type CommitType)
 {
 	if (!WorkstationComponent)
 		return;
 
-	FWorkstationProductionSetting* Setting = WorkstationComponent->GetSetting(SettingIndex);
+	const FWorkstationProductionSetting* Setting = WorkstationComponent->GetProductionSetting(SettingIndex);
 
 	if (!Setting)
 		return;
 
-	Setting->Priority = FMath::RoundToInt(Value);
+	FWorkstationProductionSetting ModifiedSetting = *Setting;
+	ModifiedSetting.Priority = FMath::RoundToInt(Value);
+	WorkstationComponent->SetProductionSetting(ModifiedSetting);
 }
 
 void UWorkstationMenuRowWidget::RefreshVisuals()
@@ -99,7 +111,7 @@ void UWorkstationMenuRowWidget::RefreshVisuals()
 	if (!WorkstationComponent || !Checkmark)
 		return;
 
-	const FWorkstationProductionSetting* Setting = WorkstationComponent->GetSetting(SettingIndex);
+	const FWorkstationProductionSetting* Setting = WorkstationComponent->GetProductionSetting(SettingIndex);
 
 	if (!Setting)
 		return;

@@ -4,9 +4,10 @@
 #include "PurchasableManagerSubsystem.h"
 #include "PurchasableDefinition.h"
 #include "PurchasableInstance.h"
-#include "GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "PurchasableFreshness.h"
 #include "Engine/GameInstance.h"
+#include "RecipeDefinition.h"
 
 void UPurchasableManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -52,7 +53,7 @@ EPurchasableQuality UPurchasableManagerSubsystem::GetQualityLevel(const float Qu
 	return EPurchasableQuality::Terrible;
 }
 
-UPurchasableInstance* UPurchasableManagerSubsystem::ProducePurchasable(UPurchasableDefinition* Definition, int32 WorkerSkillLevel)
+UPurchasableInstance* UPurchasableManagerSubsystem::ProducePurchasable(UPurchasableDefinition* Definition, int32 WorkerSkillLevel, int32 Amount)
 {
 	if (!Definition)
 	{
@@ -83,18 +84,33 @@ UPurchasableInstance* UPurchasableManagerSubsystem::ProducePurchasable(UPurchasa
 	Key.Quality = QualityLevel;
 	Key.Freshness = FreshnessLevel;
 
-	FInventoryStack& Stack = Inventory.FindOrAdd(Key);
-	
-	Stack.Key = Key;
-	Stack.Quantity = 0;
-	Stack.AverageFreshness = Instance->Freshness;
-	Stack.LastUpdateHour = Instance->CreationTime;
+	FInventoryStack* ExistingStack = Inventory.Find(Key);
 
-	float TotalFreshness = Stack.AverageFreshness * Stack.Quantity;
-	TotalFreshness += Instance->Freshness;
+	if (!ExistingStack)
+	{
+		FInventoryStack NewStack;
+		NewStack.Key = Key;
+		NewStack.Quantity = Amount;
+		NewStack.AverageFreshness = Instance->Freshness;
+		NewStack.LastUpdateHour = Instance->CreationTime;
 
-	Stack.Quantity++;
-	Stack.AverageFreshness = TotalFreshness / Stack.Quantity;
+		Inventory.Add(Key, NewStack);
+		
+		UE_LOG(LogTemp, Log, TEXT("Created new Stack in Inventory for %s."), *Definition->ItemName.ToString());
+	}
+	else
+	{
+		FInventoryStack& Stack = *ExistingStack;
+
+		float TotalFreshness = Stack.AverageFreshness * Stack.Quantity;
+		TotalFreshness += Instance->Freshness;
+
+		Stack.Quantity += Amount;
+
+		Stack.AverageFreshness = TotalFreshness / Stack.Quantity;
+		
+		UE_LOG(LogTemp, Log, TEXT("Added %s to existing Stack in Inventory."), *Definition->ItemName.ToString());
+	}
 
 	OnInventoryChanged.Broadcast();
 
@@ -155,17 +171,57 @@ bool UPurchasableManagerSubsystem::RemovePurchasableIfAvailable(UPurchasableDefi
 		Remaining -= RemoveAmount;
 	}
 
-	// Remove empty stacks
-	for (auto It = Inventory.CreateIterator(); It; ++It)
+	return true;
+}
+
+bool UPurchasableManagerSubsystem::RemoveIngredientsIfAvailable(TArray<FRecipeIngredient> Ingredients)
+{
+	if (!IngredientsAvailable(Ingredients))
 	{
-		if (It.Value().Quantity <= 0)
-		{
-			It.RemoveCurrent();
-		}
+		return false;
 	}
 
-	OnInventoryChanged.Broadcast();
+	// Remove all:
+	for (const FRecipeIngredient& Ingredient : Ingredients)
+	{
+		RemovePurchasableIfAvailable(Ingredient.Item, Ingredient.Quantity);
+	}
+	
+	CleanupEmptyStacks();
 
+	return true;
+}
+
+bool UPurchasableManagerSubsystem::IngredientsAvailable(TArray<FRecipeIngredient> Ingredients)
+{
+	if (Ingredients.Num() == 0)
+	{
+		return false;
+	}
+
+	// Validate availability for all ingredients
+	for (const FRecipeIngredient& Ingredient : Ingredients)
+	{
+		if (!Ingredient.Item || Ingredient.Quantity <= 0)
+		{
+			return false;
+		}
+
+		int32 TotalAvailable = 0;
+
+		for (const TPair<FInventoryStackKey, FInventoryStack>& Pair : Inventory)
+		{
+			if (Pair.Key.Definition == Ingredient.Item)
+			{
+				TotalAvailable += Pair.Value.Quantity;
+			}
+		}
+
+		if (TotalAvailable < Ingredient.Quantity)
+		{
+			return false; // not enough of this ingredient
+		}
+	}
 	return true;
 }
 
@@ -242,5 +298,103 @@ void UPurchasableManagerSubsystem::UpdateStackFreshness(FInventoryStack& Stack, 
 
 void UPurchasableManagerSubsystem::RemoveExpiredItems(FInventoryStack& Stack)
 {
+	// ToDo
+	CleanupEmptyStacks();
+}
+
+void UPurchasableManagerSubsystem::CleanupEmptyStacks()
+{
+	// Cleanup empty stacks
+	for (auto It = Inventory.CreateIterator(); It; ++It)
+	{
+		if (It.Value().Quantity <= 0)
+		{
+			It.RemoveCurrent();
+		}
+	}
+
 	OnInventoryChanged.Broadcast();
+}
+
+FPurchaseResult UPurchasableManagerSubsystem::TakePurchasables(UPurchasableDefinition* Definition, int32 RequestedCount)
+{
+	FPurchaseResult Result;
+	Result.AmountRequested = RequestedCount;
+
+	if (!Definition || RequestedCount <= 0)
+	{
+		return Result;
+	}
+
+	// Collect stacks
+	TArray<FInventoryStack*> MatchingStacks;
+	int32 TotalAvailable = 0;
+
+	for (TPair<FInventoryStackKey, FInventoryStack>& Pair : Inventory)
+	{
+		FInventoryStack& Stack = Pair.Value;
+
+		if (Pair.Key.Definition == Definition && Stack.Quantity > 0)
+		{
+			MatchingStacks.Add(&Stack);
+			TotalAvailable += Stack.Quantity;
+		}
+	}
+
+	if (TotalAvailable <= 0)
+	{
+		return Result;
+	}
+
+	// Sort: worst items first (sell first)
+	MatchingStacks.Sort([](const FInventoryStack& A, const FInventoryStack& B)
+	{
+		if (A.Key.Freshness != B.Key.Freshness)
+		{
+			return (uint8)A.Key.Freshness > (uint8)B.Key.Freshness;
+		}
+		return (uint8)A.Key.Quality < (uint8)B.Key.Quality;
+	});
+
+	int32 Remaining = RequestedCount;
+
+	for (FInventoryStack* Stack : MatchingStacks)
+	{
+		if (Remaining <= 0)
+		{
+			break;
+		}
+
+		int32 RemoveAmount = FMath::Min(Stack->Quantity, Remaining);
+
+		// Generate instances from stack approximation
+		for (int32 i = 0; i < RemoveAmount; ++i)
+		{
+			UPurchasableInstance* Instance = NewObject<UPurchasableInstance>(this);
+			if (!Instance) continue;
+
+			Instance->Definition = Definition;
+
+			Instance->Freshness = Stack->AverageFreshness;
+
+			switch (Stack->Key.Quality)
+			{
+				case EPurchasableQuality::Excellent: Instance->Quality = 1.4f; break;
+				case EPurchasableQuality::Good:      Instance->Quality = 1.1f; break;
+				case EPurchasableQuality::Normal:    Instance->Quality = 1.0f; break;
+				case EPurchasableQuality::Poor:      Instance->Quality = 0.8f; break;
+				default:                             Instance->Quality = 0.6f; break;
+			}
+
+			Result.Instances.Add(Instance);
+		}
+
+		Stack->Quantity -= RemoveAmount;
+		Result.AmountRemoved += RemoveAmount;
+		Remaining -= RemoveAmount;
+	}
+
+	CleanupEmptyStacks();
+
+	return Result;
 }

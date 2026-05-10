@@ -22,11 +22,10 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly)
 	AInteractableBase* SourceInteractable = nullptr;
+
+	UFUNCTION()
+	virtual void OnMenuOpened();
 	
-protected:
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnMenuOpened();
-	
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnMenuClosed();
+	UFUNCTION()
+	virtual void OnMenuClosed();
 };

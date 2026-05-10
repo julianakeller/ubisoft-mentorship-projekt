@@ -3,22 +3,30 @@
 
 #include "InteractableWidgetTextComponent.h"
 #include "InteractableBase.h"
-#include "MentorshipProjekt/Menu/MenuManager.h"
+#include "InteractionWidget.h"
+#include "Components/WidgetComponent.h"
 
 void UInteractableWidgetTextComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (CachedInteractable->InteractionWidgetComponent)
+	{
+		InteractionWidgetReference = Cast<UInteractionWidget>(CachedInteractable->InteractionWidgetComponent->GetWidget());
+	}
+	
 	UpdateText();
+	UpdateWidgetVisibility();
 }
 
 void UInteractableWidgetTextComponent::OnRangeEntered(AActor* Interactor)
 {
-	UpdateText();
+	UpdateWidgetVisibility();
 }
 
 void UInteractableWidgetTextComponent::OnRangeExited(AActor* Interactor)
 {
-	UpdateText();
+	UpdateWidgetVisibility();
 }
 
 void UInteractableWidgetTextComponent::OnInteract(AActor* Interactor)
@@ -26,25 +34,29 @@ void UInteractableWidgetTextComponent::OnInteract(AActor* Interactor)
 	UpdateText();
 }
 
-void UInteractableWidgetTextComponent::UpdateText() const
+void UInteractableWidgetTextComponent::UpdateWidgetVisibility()
 {
-	if (!CachedInteractable)
-		return;
-
-	EInteractionState State = CachedInteractable->GetInteractionState();
-
-	switch (State)
+	//Should only be visible if player, not NPC, is near
+	
+	if (!CachedInteractable->InteractionWidgetComponent)
 	{
-	case EInteractionState::Available:
-		CachedInteractable->SetInteractionText(AvailableText);
-		break;
-
-	case EInteractionState::Interacting:
-		CachedInteractable->SetInteractionText(InteractingText);
-		break;
-
-	default:
-		CachedInteractable->SetInteractionText(FText::GetEmpty());
-		break;
+		return;
 	}
+
+	const bool bShouldBeVisible = CachedInteractable->bPlayerInRange && (CachedInteractable->InteractionState == EInteractionState::Available);
+	CachedInteractable->InteractionWidgetComponent->SetHiddenInGame(!bShouldBeVisible, true);
+}
+
+void UInteractableWidgetTextComponent::UpdateText()
+{
+	if (!CachedInteractable || !InteractionWidgetReference)
+	{
+		return;
+	}
+
+	const bool bIsInteracting = CachedInteractable->GetInteractionState() == EInteractionState::Interacting;
+
+	InteractionWidgetReference->PopulateRows(InteractionEntries, bIsInteracting);
+	
+	UpdateWidgetVisibility();
 }

@@ -3,11 +3,11 @@
 
 #include "MenuManager.h"
 
-#include "GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
-#include "MentorshipProjekt/Public/GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 
 
 void UMenuManager::Initialize(FSubsystemCollectionBase& Collection)

@@ -31,8 +31,4 @@ protected:
 	TArray<AInteractableBase*> VisitorInteractables; //ToDo should be somehow limited to visitor interactables only
 
 	void GatherVisitorInteractables();
-	
-public:	
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 };

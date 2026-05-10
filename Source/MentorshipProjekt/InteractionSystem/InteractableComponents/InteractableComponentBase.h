@@ -7,6 +7,14 @@
 #include "InteractableComponentBase.generated.h"
 
 
+class UCustomerReservationComponent;
+class UGameTimeSubsystem;
+class UPurchasableManagerSubsystem;
+class UWSInteractionComponentBase;
+class IWorkstationInteractionInterface;
+class UFamilyMemberReservationComponent;
+class UInteractableWorkstationComponent;
+class USingleStageProductionComponent;
 class AInteractableBase;
 
 UCLASS(Abstract, ClassGroup=(Interaction), meta=(BlueprintSpawnableComponent) )
@@ -16,10 +24,11 @@ class MENTORSHIPPROJEKT_API UInteractableComponentBase : public UActorComponent
 
 public:	
 	UInteractableComponentBase();
-
-protected:
+	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+protected:
 	
 	UPROPERTY()
 	AInteractableBase* CachedInteractable = nullptr;
@@ -45,4 +54,23 @@ private:
 	UFUNCTION()
 	void HandleRangeExited(AActor* Interactor);
 		
+public:
+	
+	UPROPERTY()
+	UWSInteractionComponentBase* ProductionComponent = nullptr;
+	
+	UPROPERTY()
+	UInteractableWorkstationComponent* ProductionWorkstation = nullptr;
+	
+	UPROPERTY()
+	UFamilyMemberReservationComponent* FamilyMemberReservationComponent = nullptr;
+	
+	UPROPERTY()
+	UCustomerReservationComponent* CustomerReservationComponent = nullptr;
+	
+	UPROPERTY()
+	UGameTimeSubsystem* GameTimeSubsystem;
+
+	UPROPERTY()
+	UPurchasableManagerSubsystem* PurchasableManager;
 };

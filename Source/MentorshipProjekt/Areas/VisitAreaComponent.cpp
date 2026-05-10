@@ -7,7 +7,7 @@
 
 UVisitAreaComponent::UVisitAreaComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 TArray<AInteractableBase*> UVisitAreaComponent::GetFreeInteractables() const
@@ -20,12 +20,6 @@ void UVisitAreaComponent::BeginPlay()
 	Super::BeginPlay();
 	
 	GatherVisitorInteractables();
-}
-
-void UVisitAreaComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-	FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 void UVisitAreaComponent::GatherVisitorInteractables()

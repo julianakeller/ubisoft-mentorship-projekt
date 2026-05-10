@@ -3,13 +3,16 @@
 
 #include "CustomerSimulationSubsystem.h"
 
-#include "GameTimeSubsystem.h"
+#include "EngineUtils.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "GameplayTagsManager.h"
-#include "MPGameplayTags.h"
+#include "MentorshipProjekt/Tags/MPGameplayTags.h"
 #include "MentorshipProjekt/NPCs/Customer/RelationshipRuleDataAsset.h"
 #include "MentorshipProjekt/NPCs/Customer/CustomerRelationship.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "LoggingSystem/LogSubsystem.h"
+#include "MentorshipProjekt/NPCs/Customer/CustomerCharacter.h"
+#include "MentorshipProjekt/NPCs/SpawnPoints/CustomerSpawnPoint.h"
 
 void UCustomerSimulationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -17,6 +20,27 @@ void UCustomerSimulationSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 	Super::Initialize(Collection);
 	
 	LoadCustomerDataAssets();
+	LoadCustomerCharacterClass();
+}
+
+#pragma region Loaders
+
+void UCustomerSimulationSubsystem::LoadCustomerCharacterClass()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Loading CustomerCharacterClass..."));
+	
+	// Assign soft reference path
+	CustomerCharacterSoftClass = TSoftClassPtr<ACustomerCharacter>( FSoftObjectPath(TEXT("/Game/NPCs/Customers/BP_CustomerCharacter.BP_CustomerCharacter_C")));
+
+	UClass* LoadedClass = CustomerCharacterSoftClass.LoadSynchronous();
+
+	if (!LoadedClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to load BP_CustomerCharacter class"));
+		return;
+	}
+
+	CustomerCharacterClass = LoadedClass;
 }
 
 void UCustomerSimulationSubsystem::LoadCustomerDataAssets()
@@ -118,10 +142,30 @@ void UCustomerSimulationSubsystem::LoadCustomerDataAssets()
 	}
 }
 
+#pragma endregion 
+
+#pragma region TimeChanged Handlers
+
+void UCustomerSimulationSubsystem::DespawnCustomer(const FGuid& CustomerId)
+{
+	SpawnedCustomersCount = FMath::Max(0, SpawnedCustomersCount-1);
+	
+	if (FCustomerInstanceData* Customer = Customers.Find(CustomerId))
+	{
+		Customer->bVisiting = false;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DespawnCustomer: Customer not found: %s"), *CustomerId.ToString());
+	}
+}
+
 void UCustomerSimulationSubsystem::OnMinuteChanged(const FInGameTime& NewTime)
 {
 	GenerateNewCustomer(NewTime, LastUpdateMinute);
 	LastUpdateMinute = NewTime;
+	
+	ScheduleVisit();
 }
 
 void UCustomerSimulationSubsystem::OnHourChanged(const FInGameTime& NewTime)
@@ -133,21 +177,32 @@ void UCustomerSimulationSubsystem::OnHourChanged(const FInGameTime& NewTime)
 		
 		SimulateHealth(Customer, NewTime);
 	}
+	
+	//ScheduleVisit();
+	
 	LastUpdateHour = NewTime;
 }
 
 void UCustomerSimulationSubsystem::OnDayChanged(const FInGameTime& NewTime)
 {
 	// ToDo update subsets over one day
+	
+	// Customers
 	for (TPair<FGuid, FCustomerInstanceData>& Pair : Customers)
 	{
 		FGuid& CustomerId = Pair.Key;
 		FCustomerInstanceData& Customer = Pair.Value;
 		
 		UpdateCustomerAge(Customer, NewTime);
-		UpdateCustomerFunds(Customer);
-		SimulateCustomerInventory(Customer);
 	}
+	
+	// Households
+	for (TPair<FGuid, FHousehold>& Pair : Households)
+	{
+		UpdateHouseholdInventory(Pair.Value);
+		UpdateHouseholdShoppingList(Pair.Value);
+	}
+	
 	GenerateNewCustomer(NewTime, LastUpdateDay);
 	LastUpdateDay = NewTime;
 }
@@ -177,6 +232,10 @@ void UCustomerSimulationSubsystem::OnMonthChanged(const FInGameTime& NewTime)
 	LastUpdateMonth = NewTime;
 }
 
+#pragma endregion 
+
+#pragma region Customer Updates/Simulations
+
 void UCustomerSimulationSubsystem::UpdateCustomerAge(FCustomerInstanceData& Customer, FInGameTime NewTime)
 {
 	// Called once per day
@@ -194,16 +253,6 @@ void UCustomerSimulationSubsystem::UpdateCustomerAge(FCustomerInstanceData& Cust
 			LogSubsystem->LogCustomerBirthday(Customer);
 		}
 	}
-}
-
-void UCustomerSimulationSubsystem::UpdateCustomerFunds(FCustomerInstanceData& Customer)
-{
-	
-}
-
-void UCustomerSimulationSubsystem::SimulateCustomerInventory(FCustomerInstanceData& Customer)
-{
-	
 }
 
 void UCustomerSimulationSubsystem::SimulateHealth(FCustomerInstanceData& Customer, FInGameTime NewTime)
@@ -293,13 +342,134 @@ void UCustomerSimulationSubsystem::SimulateRelationship(FCustomerInstanceData& C
 	// ToDo Update household if true (add or remove member)
 }
 
+#pragma endregion 
+
+#pragma region Household Updates
+
+void UCustomerSimulationSubsystem::UpdateHouseholdInventory(FHousehold& Household)
+{
+	
+}
+
+// Addds new entries to the shopping list of a household
+void UCustomerSimulationSubsystem::UpdateHouseholdShoppingList(FHousehold& Household)
+{
+	// ToDo currently random tag selection
+	
+	FGameplayTagContainer PurchasableChildren = UGameplayTagsManager::Get().RequestGameplayTagChildren(MPGameplayTags::TAG_Purchasable);
+
+	TArray<FGameplayTag> TagArray;
+	PurchasableChildren.GetGameplayTagArray(TagArray);
+
+	if (TagArray.Num() == 0)
+	{
+		return;
+	}
+
+	const int32 NumToAdd = FMath::RandRange(1, 4);
+
+	for (int32 i = 0; i < NumToAdd; ++i)
+	{
+		const FGameplayTag RandomTag = TagArray[FMath::RandRange(0, TagArray.Num() - 1)];
+
+		Household.AddShoppingListEntry(
+			RandomTag,
+			FMath::RandRange(1, 3),
+			FMath::RandRange(1, 5)
+		);
+	}
+}
+
+FHousehold* UCustomerSimulationSubsystem::GetHouseholdById(const FGuid& Id)
+{
+	return Households.Find(Id);
+}
+
+void UCustomerSimulationSubsystem::ModifyHouseholdFunds(const FGuid& HouseholdId, float FundsToAdd)
+{
+	FHousehold* Household = GetHouseholdById(HouseholdId);
+
+	if (!Household)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ModifyHouseholdFunds: Household not found."));
+		return;
+	}
+
+	Household->AddFunds(FundsToAdd);
+}
+
+float UCustomerSimulationSubsystem::GetHouseholdFunds(const FGuid& Id)
+{
+	const FHousehold* Household = GetHouseholdById(Id);
+
+	if (!Household)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetHouseholdFunds: Household not found."));
+		return 0.f;
+	}
+
+	return Household->SharedFunds;
+}
+
+void UCustomerSimulationSubsystem::AddPurchasablesToHousehold(const FGuid& HouseholdId,
+	const TArray<UPurchasableInstance*>& Purchasables)
+{
+	FHousehold* Household = Households.Find(HouseholdId);
+
+	if (!Household)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("CustomerSimulationSubsystem: Failed to add purchasables. Household not found."));
+		return;
+	}
+
+	Household->AddPurchasables(Purchasables);
+
+	UE_LOG(LogTemp, Verbose, TEXT("CustomerSimulationSubsystem: Added %d purchasables to household %s"), Purchasables.Num(), *HouseholdId.ToString());
+}
+
+TMap<FGameplayTag, FDesiredTagEntry>* UCustomerSimulationSubsystem::GetHouseholdShoppingList(const FGuid& HouseholdId)
+{
+	FHousehold* Household = Households.Find(HouseholdId);
+
+	if (!Household)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GetShoppingList: Household not found."));
+		return nullptr;
+	}
+
+	return &Household->ShoppingList;
+}
+
+TMap<FGameplayTag, FDesiredTagEntry>* UCustomerSimulationSubsystem::GetCustomerShoppingList(const FGuid& CustomerId)
+{
+	if (const FCustomerInstanceData* Customer = Customers.Find(CustomerId))
+	{
+		return GetHouseholdShoppingList(Customer->HouseholdId);
+	}
+	return nullptr;
+}
+
+#pragma endregion
+
+#pragma region Customer Creation
+
 void UCustomerSimulationSubsystem::CreateCustomerInstance()
 {
 	FCustomerInstanceData NewCustomer;
-	NewCustomer.InitializeFromDataAsset();
+	NewCustomer.InitializeCustomer();
+	
+	// Household:
 	
 	//ToDo random starter relationships with existing customers, preferably with customers with same last time -> family
 	//ToDo create household (new of add to existing household of relationship), create GUId for household if new
+	
+	FHousehold NewHousehold;
+	NewHousehold.HouseholdId = FGuid::NewGuid();
+	NewHousehold.HouseholdMembers.Add(NewCustomer.CustomerId);
+	NewHousehold.InitializeHousehold();
+	NewCustomer.HouseholdId = NewHousehold.HouseholdId;
+
+	Households.Add(NewHousehold.HouseholdId,NewHousehold);
 	
 	//Random Profession selected from ProfessionDataAssets:
 	
@@ -442,52 +612,91 @@ void UCustomerSimulationSubsystem::GenerateNewCustomer(const FInGameTime& NewTim
 	//UE_LOG(LogTemp, Warning, TEXT("New Spawn Chance: %f"), BaseSpawnChance);
 }
 
-void UCustomerSimulationSubsystem::ScheduleVisit(FCustomerInstanceData& Customer)
-{
-}
+#pragma endregion 
 
-void UCustomerSimulationSubsystem::BuildTransitionMap()
+#pragma region Visits
+
+void UCustomerSimulationSubsystem::ScheduleVisit()
 {
-	if (!RelationshipRulesAsset)
+	if (SpawnedCustomersCount > 2)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RelationshipRulesAsset not assigned!"));
 		return;
 	}
 	
-	TArray<FRelationshipTransitionRule> TransitionRules = RelationshipRulesAsset->TransitionRules;
-	
-	RulesByType.Empty();
-
-	for (const FRelationshipTransitionRule& Rule : TransitionRules)
+	if (Customers.Num() == 0 || !CustomerCharacterClass)
 	{
-		RulesByType.FindOrAdd(Rule.From).Add(Rule);
-		
-		//Log added Relationship Transitions:
-		const UEnum* EnumPtr = StaticEnum<ERelationshipTypes>();
-		if (EnumPtr)
-		{
-			const FString FromDisplayName = EnumPtr->GetDisplayNameTextByValue((int64)Rule.From).ToString();
-			const FString ToDisplayName   = EnumPtr->GetDisplayNameTextByValue((int64)Rule.To).ToString();
+		//UE_LOG(LogTemp, Warning, TEXT("UCustomerSimulationSubsystem: No CustomerCharacterClass or Customers found (Customer Count = %d)"), Customers.Num());
+		return;
+	}
 
-			UE_LOG(LogTemp, Log, TEXT("Relationship Rule: From %s -> To %s"), *FromDisplayName, *ToDisplayName);
-		}
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (CustomerSpawnPoints.Num() == 0)
+	{
+		CacheSpawnPoints(World);
+	}
+
+	if (CustomerSpawnPoints.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UCustomerSimulationSubsystem: No CustomerSpawnPoints found"));
+		return;
+	}
+
+	// Select random customer
+	TArray<FGuid> Keys;
+	Customers.GetKeys(Keys);
+
+	const int32 RandomIndex = FMath::RandRange(0, Keys.Num() - 1);
+	const FGuid& SelectedId = Keys[RandomIndex];
+
+	FCustomerInstanceData* CustomerData = Customers.Find(SelectedId);
+	if (!CustomerData || CustomerData->bVisiting)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("UCustomerSimulationSubsystem: No Customer could be selected."));
+		return;
+	}
+
+	// Select spawn point
+	AActor* SpawnPoint = CustomerSpawnPoints[FMath::RandRange(0, CustomerSpawnPoints.Num() - 1)];
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	ACustomerCharacter* SpawnedCharacter = World->SpawnActor<ACustomerCharacter>(
+		CustomerCharacterClass,
+		SpawnPoint->GetActorTransform(),
+		Params
+	);
+
+	if (!SpawnedCharacter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UCustomerSimulationSubsystem: Character could not be spawned."));
+		return;
+	}
+	
+	CustomerData->bVisiting = true;
+	SpawnedCustomersCount++;
+
+	SpawnedCharacter->Initialize(SelectedId);
+}
+
+void UCustomerSimulationSubsystem::CacheSpawnPoints(UWorld* World)
+{
+	CustomerSpawnPoints.Empty();
+
+	for (TActorIterator<AActor> It(World, ACustomerSpawnPoint::StaticClass()); It; ++It)
+	{
+		CustomerSpawnPoints.Add(*It);
 	}
 }
 
-FHousehold* UCustomerSimulationSubsystem::GetHouseholdById(const FGuid& Id)
-{
-	return Households.Find(Id);
-}
+#pragma endregion
 
-void UCustomerSimulationSubsystem::ModifyHouseholdFunds(const FGuid* Id, float FundsToAdd)
-{
-	GetHouseholdById(*Id)->SharedFunds += FundsToAdd;
-}
-
-float UCustomerSimulationSubsystem::GetHouseholdFunds(const FGuid* Id)
-{
-	return GetHouseholdById(*Id)->SharedFunds;
-}
+#pragma region Relationships
 
 FCustomerRelationship* UCustomerSimulationSubsystem::GetOrCreateRelationship(FCustomerInstanceData& CustomerA, FCustomerInstanceData& CustomerB)
 {
@@ -518,6 +727,38 @@ FCustomerRelationship* UCustomerSimulationSubsystem::GetOrCreateRelationship(FCu
 	return NewRel.Get();
 }
 
+void UCustomerSimulationSubsystem::BuildTransitionMap()
+{
+	if (!RelationshipRulesAsset)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RelationshipRulesAsset not assigned!"));
+		return;
+	}
+	
+	TArray<FRelationshipTransitionRule> TransitionRules = RelationshipRulesAsset->TransitionRules;
+	
+	RulesByType.Empty();
+
+	for (const FRelationshipTransitionRule& Rule : TransitionRules)
+	{
+		RulesByType.FindOrAdd(Rule.From).Add(Rule);
+		
+		//Log added Relationship Transitions:
+		const UEnum* EnumPtr = StaticEnum<ERelationshipTypes>();
+		if (EnumPtr)
+		{
+			const FString FromDisplayName = EnumPtr->GetDisplayNameTextByValue((int64)Rule.From).ToString();
+			const FString ToDisplayName   = EnumPtr->GetDisplayNameTextByValue((int64)Rule.To).ToString();
+
+			UE_LOG(LogTemp, Log, TEXT("Relationship Rule: From %s -> To %s"), *FromDisplayName, *ToDisplayName);
+		}
+	}
+}
+
+#pragma endregion
+
+#pragma region Logging
+
 void UCustomerSimulationSubsystem::LogAllCustomerData() const
 {
 	UE_LOG(LogTemp, Log, TEXT("=== CustomerSimulationSubsystem: Customer Data ==="));
@@ -537,3 +778,5 @@ void UCustomerSimulationSubsystem::LogAllCustomerData() const
 		Index++;
 	}
 }
+
+#pragma endregion 

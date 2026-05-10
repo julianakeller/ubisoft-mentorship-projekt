@@ -4,10 +4,8 @@
 #include "InteractableBase.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
-#include "InteractionWidget.h"
-#include "TopDownCharacter.h"
+#include "MentorshipProjekt/Player/TopDownCharacter.h"
 
-// Sets default values
 AInteractableBase::AInteractableBase()
 {
  	PrimaryActorTick.bCanEverTick = false;
@@ -15,52 +13,26 @@ AInteractableBase::AInteractableBase()
 	InteractableMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("InteractableMesh"));
 	RootComponent = InteractableMesh;
 	
+	// Create Interaction Range Sphere:
 	InteractionRange = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionRange"));
 	InteractionRange->InitSphereRadius(200.f);
 	InteractionRange->SetupAttachment(InteractableMesh);
 	
+	// Create Interaction Widget Compmonent subobject:
 	InteractionWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
 	InteractionWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractionWidgetComponent->SetupAttachment(InteractableMesh);
 	InteractionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	InteractionWidgetComponent->SetDrawAtDesiredSize(true);
 	InteractionWidgetComponent->SetHiddenInGame(true, true);
-	
-	static ConstructorHelpers::FClassFinder<UUserWidget> InteractionWidgetClassFinder(TEXT("/Game/UI/BP_InteractionWidget"));
-	if (InteractionWidgetClassFinder.Succeeded())
-	{
-		InteractionWidgetComponent->SetWidgetClass(InteractionWidgetClassFinder.Class);
-	}
-	
 }
 
-// Called when the game starts or when spawned
 void AInteractableBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
 	InteractionRange->OnComponentBeginOverlap.AddDynamic(this, &AInteractableBase::OnBeginOverlap);
 	InteractionRange->OnComponentEndOverlap.AddDynamic(this, &AInteractableBase::OnEndOverlap);
-	
-	if (InteractionWidgetComponent)
-	{
-		InteractionWidgetReference = Cast<UInteractionWidget>(InteractionWidgetComponent->GetWidget());
-	}
-}
-
-void AInteractableBase::UpdateWidgetVisibility()
-{
-	//Should only be visible if player, not NPC, is near
-	
-	if (!InteractionWidgetComponent)
-	{
-		return;
-	}
-
-	const bool bShouldBeVisible = (InteractionState == EInteractionState::Available);
-	
-	//const bool bShouldBeVisible = bPlayerInRange && CanBeInteracted(); //OLD
-	InteractionWidgetComponent->SetHiddenInGame(!bShouldBeVisible, true);
 }
 
 void AInteractableBase::SetInteractionState(EInteractionState NewState)
@@ -71,7 +43,6 @@ void AInteractableBase::SetInteractionState(EInteractionState NewState)
 	}
 
 	InteractionState = NewState;
-	UpdateWidgetVisibility();
 }
 
 void AInteractableBase::OnInteractionRangeEntered()
@@ -144,10 +115,13 @@ void AInteractableBase::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 	{
 		return;
 	}
-	/*if (!Cast<ATopDownCharacter>(OtherActor)) //Only player can interact
+	
+	ATopDownCharacter* PlayerCharacter = Cast<ATopDownCharacter>(OtherActor);
+
+	if (PlayerCharacter)
 	{
-		return;
-	}*/
+		bPlayerInRange = true;
+	}
 	
 	OnInteractionRangeEntered();
 }
@@ -158,15 +132,13 @@ void AInteractableBase::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, A
 	{
 		return;
 	}
+	
+	ATopDownCharacter* PlayerCharacter = Cast<ATopDownCharacter>(OtherActor);
+
+	if (PlayerCharacter)
+	{
+		bPlayerInRange = false;
+	}
 
 	OnInteractionRangeExited();
-}
-
-void AInteractableBase::SetInteractionText(FText NewInteractionText)
-{
-	InteractionText = NewInteractionText;
-	if (InteractionWidgetReference)
-	{
-		InteractionWidgetReference->UpdateInteractionText(NewInteractionText);
-	}
 }

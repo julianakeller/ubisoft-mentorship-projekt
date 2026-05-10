@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "NPCCharacter.generated.h"
 
+class UNPCBrainComponent;
+
 UCLASS()
 class MENTORSHIPPROJEKT_API ANPCCharacter : public ACharacter
 {
@@ -13,14 +15,12 @@ class MENTORSHIPPROJEKT_API ANPCCharacter : public ACharacter
 
 public:
 	ANPCCharacter();
-
-protected:
+	
 	virtual void BeginPlay() override;
 
-public:	
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UNPCBrainComponent* BrainComponent = nullptr;
 
 };

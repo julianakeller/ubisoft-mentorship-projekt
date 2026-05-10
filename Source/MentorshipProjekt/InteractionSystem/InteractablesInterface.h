@@ -33,8 +33,4 @@ public:
 	virtual void HandleInteraction(AActor* Character) = 0;
 	virtual void HandleInteractionSecondary(AActor* Character) = 0;
 	virtual bool CanBeInteracted() const = 0;
-	
-	/* Setter and Getter for Interaction Text*/
-	virtual void SetInteractionText(FText NewInteractionText) = 0;
-	virtual FText GetInteractionText() const = 0;
 };

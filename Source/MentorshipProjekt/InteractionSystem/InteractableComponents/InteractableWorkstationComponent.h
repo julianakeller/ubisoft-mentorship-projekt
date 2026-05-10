@@ -29,6 +29,8 @@ struct FWorkstationProductionSetting
 	int32 Priority = 0; // 0 = default, higher = higher priority
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnProductionSettingsChanged, UInteractableWorkstationComponent*);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class MENTORSHIPPROJEKT_API UInteractableWorkstationComponent : public UInteractableComponentBase
 {
@@ -46,15 +48,32 @@ public:
 	// What this workstation can produce
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Workstation")
 	TArray<TObjectPtr<UPurchasableDefinition>> AvailablePurchasables;
-
+	
+	UPROPERTY()
+	TArray<int32> SortedSettingIndices;
+	
+	FOnProductionSettingsChanged OnProductionSettingsChanged;
+	
+	const TArray<FWorkstationProductionSetting>& GetProductionSettings() const {return ProductionSettings;}
+	
+	// Return const copy so that it cannot be accidentally modified
+	const FWorkstationProductionSetting* GetProductionSetting(int32 Index) const;
+	
+	// Change the setting with the same purchasable definition to the settings of the passed const Setting
+	void SetProductionSetting(const FWorkstationProductionSetting Setting);
+	
+	const FWorkstationProductionSetting* GetHighestPriorityEnabledSetting() const;
+	
+	UPurchasableDefinition* GetHighestPriorityPurchasable();
+	
+	const FWorkstationProductionSetting* GetSettingSorted(int32 SortedIndex) const;
+	
+	void RebuildSortedIndices();
+	
+	void NotifyProductionSettingsChanged();
+	
+private:
+	
 	// Current production configuration
-	UPROPERTY(BlueprintReadOnly, Category="Workstation")
 	TArray<FWorkstationProductionSetting> ProductionSettings;
-	
-	FWorkstationProductionSetting* GetHighestPriorityEnabledSetting();
-	
-	UFUNCTION(BlueprintCallable)
-	void SortProductionSettings();
-	
-	FWorkstationProductionSetting* GetSetting(int32 Index);
 };

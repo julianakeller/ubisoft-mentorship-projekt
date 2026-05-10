@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "LoggingSystem/LogSubsystem.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "NPCSimulationSubsystem.generated.h"

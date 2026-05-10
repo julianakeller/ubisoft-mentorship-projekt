@@ -23,21 +23,6 @@ bool AInteractableMenu::CanBeInteracted() const
 		|| InteractionState == EInteractionState::Interacting;
 }
 
-FText AInteractableMenu::GetInteractionText() const
-{
-	switch (InteractionState)
-	{
-	case EInteractionState::Available:
-		return FText::FromString("Open Menu");
-
-	case EInteractionState::Interacting:
-		return FText::FromString("Close Menu");
-
-	default:
-		return FText::GetEmpty();
-	}
-}
-
 bool AInteractableMenu::IsMenuOpen() const
 {
 	if (UMenuManager* MenuManager = GetWorld()->GetSubsystem<UMenuManager>())

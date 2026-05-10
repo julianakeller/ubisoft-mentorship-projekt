@@ -19,7 +19,6 @@ class MENTORSHIPPROJEKT_API AInteractableMenu : public AInteractableBase
 	
 public:
 	virtual void HandleInteraction(AActor* Character) override;
-	virtual FText GetInteractionText() const override;
 	virtual bool CanBeInteracted() const override;
 	
 private:

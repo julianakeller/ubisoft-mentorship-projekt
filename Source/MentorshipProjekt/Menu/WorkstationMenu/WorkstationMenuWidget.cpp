@@ -13,7 +13,7 @@ void UWorkstationMenuWidget::InitializeMenu(AInteractableBase* Source)
 	
 	if (Source)
 	{
-		WorkstationComponent = SourceInteractable->FindComponentByClass<UInteractableWorkstationComponent>();	
+		WorkstationComponent = Source->FindComponentByClass<UInteractableWorkstationComponent>();	
 	}
 }
 
@@ -23,6 +23,8 @@ void UWorkstationMenuWidget::Open()
 
 	if (!WorkstationComponent)
 		return;
+	
+	WorkstationComponent->RebuildSortedIndices();
 
 	if (MenuHeader)
 	{
@@ -37,7 +39,7 @@ void UWorkstationMenuWidget::Close()
 	// Sort production settings before closing
 	if (WorkstationComponent)
 	{
-		WorkstationComponent->SortProductionSettings();
+		WorkstationComponent->RebuildSortedIndices();
 	}
 
 	Super::Close();
@@ -50,15 +52,15 @@ void UWorkstationMenuWidget::PopulateRows()
 
 	VerticalBox->ClearChildren();
 
-	for (int32 i = 0; i < WorkstationComponent->ProductionSettings.Num(); ++i)
+	for (int32 i = 0; i < WorkstationComponent->SortedSettingIndices.Num(); ++i)
 	{
-		FWorkstationProductionSetting& Setting = WorkstationComponent->ProductionSettings[i];
-		if (!Setting.Purchasable) continue;
+		const FWorkstationProductionSetting* Setting = WorkstationComponent->GetSettingSorted(i);
+		if (!Setting || !Setting->Purchasable) continue;
 
 		UWorkstationMenuRowWidget* Row = CreateWidget<UWorkstationMenuRowWidget>(GetWorld(), RowWidgetClass);
 		if (!Row) continue;
 
-		Row->InitializeRow(WorkstationComponent, Setting.Purchasable, i);
+		Row->InitializeRow(WorkstationComponent, Setting->Purchasable, WorkstationComponent->SortedSettingIndices[i]);
 
 		VerticalBox->AddChild(Row);
 	}

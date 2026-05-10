@@ -3,7 +3,7 @@
 
 #include "LogSubsystem.h"
 #include "GameplayTagsManager.h"
-#include "MentorshipProjekt/NPCs/FamilyInstanceData.h"
+#include "MentorshipProjekt/NPCs/FamilyMember/FamilyInstanceData.h"
 #include "MentorshipProjekt/NPCs/Customer/CustomerInstanceData.h"
 
 void ULogSubsystem::Initialize(FSubsystemCollectionBase& Collection)

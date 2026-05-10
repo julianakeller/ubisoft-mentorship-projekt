@@ -3,6 +3,11 @@
 #include "InteractionMenuComponent.h"
 #include "MentorshipProjekt/Menu/MenuManager.h"
 
+void UInteractionMenuComponent::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
 void UInteractionMenuComponent::OnInteract(AActor* Interactor)
 {
 	if (!MenuClass)

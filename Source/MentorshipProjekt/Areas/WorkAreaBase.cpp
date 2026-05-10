@@ -6,6 +6,9 @@
 #include "WorkAreaManager.h"
 #include "MentorshipProjekt/InteractionSystem/InteractableBase.h"
 #include "Components/SceneComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "MentorshipProjekt/InteractionSystem/InteractableComponents/TendingWorkstationComponent.h"
+#include "MentorshipProjekt/UI/AreaSignWidget.h"
 
 AWorkAreaBase::AWorkAreaBase()
 {
@@ -13,85 +16,48 @@ AWorkAreaBase::AWorkAreaBase()
 
 	Root = CreateDefaultSubobject<USceneComponent>("Root");
 	SetRootComponent(Root);
+	
+	WorkAreaExtents = CreateDefaultSubobject<UBoxComponent>(TEXT("WorkAreaExtents"));
+	WorkAreaExtents->SetupAttachment(Root);
+	WorkAreaExtents->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	WorkAreaExtents->SetCollisionResponseToAllChannels(ECR_Overlap);
+	WorkAreaExtents->SetLineThickness(2.f);
 
-	WorkStationsRoot = CreateDefaultSubobject<USceneComponent>("WorkStationsRoot");
-	WorkStationsRoot->SetupAttachment(Root);
-	
-	//ToDo: Only create if needed (visitorAreaComponent attached)
-	VisitorInteractablesRoot = CreateDefaultSubobject<USceneComponent>("VisitorInteractablesRoot");
-	VisitorInteractablesRoot ->SetupAttachment(Root);
-	
-	//Setup debug box:
-	DebugBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("DebugBounds"));
-	DebugBounds->SetupAttachment(Root);
-	DebugBounds->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	DebugBounds->bHiddenInGame = true;
-	DebugBounds->SetVisibility(true);
+	WorkAreaLabel = CreateDefaultSubobject<UTextRenderComponent>(TEXT("WorkAreaLabel"));
+	WorkAreaLabel->SetupAttachment(WorkAreaExtents);
+	WorkAreaLabel->SetHorizontalAlignment(EHTA_Center);
+	WorkAreaLabel->SetVerticalAlignment(EVRTA_TextBottom);
+	WorkAreaLabel->SetWorldSize(50.f);
+	WorkAreaLabel->bHiddenInGame = true;
 }
 
 void AWorkAreaBase::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-
-	GatherWorkStations();
 	
-	UpdateDebugBounds();
-}
-
-void AWorkAreaBase::UpdateDebugBounds() const
-{
-	if (!DebugBounds)
+	if (WorkAreaExtents)
 	{
-		return;		
-	}
-	
-	// Start with empty box
-	FBox CombinedBox(ForceInit);
-
-	// Include all workstations
-	if (WorkStationsRoot)
-	{
-		for (const USceneComponent* ChildComp : WorkStationsRoot->GetAttachChildren())
-		{
-			if (const AActor* OwnerActor = ChildComp->GetOwner())
-			{
-				CombinedBox += OwnerActor->GetComponentsBoundingBox(true);
-			}
-		}
+		WorkAreaExtents->ShapeColor = WorkAreaColor.ToFColor(true);
 	}
 
-	// Include all visitor interactables
-	if (VisitorInteractablesRoot)
+	if (WorkAreaLabel)
 	{
-		for (const USceneComponent* ChildComp : VisitorInteractablesRoot->GetAttachChildren())
-		{
-			if (const AActor* OwnerActor = ChildComp->GetOwner())
-			{
-				CombinedBox += OwnerActor->GetComponentsBoundingBox(true);
-			}
-		}
+		WorkAreaLabel->SetText(FText::FromName(WorkAreaName));
+		WorkAreaLabel->SetTextRenderColor(WorkAreaColor.ToFColor(true));
+
+		// label position above extends box
+		FVector BoxExtent = WorkAreaExtents ? WorkAreaExtents->GetScaledBoxExtent() : FVector::ZeroVector;
+		WorkAreaLabel->SetRelativeLocation(FVector(0.f, 0.f, BoxExtent.Z + 20.f));
 	}
-
-	// Set box extent and location
-	FVector BoxExtent = CombinedBox.GetSize() * 0.5f;
-	FVector BoxCenter = CombinedBox.GetCenter();
-
-	DebugBounds->SetWorldLocation(BoxCenter);
-	DebugBounds->SetBoxExtent(BoxExtent);
 }
 
 void AWorkAreaBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// Detect VisitAreaComponent added in the Blueprint
-	VisitAreaComponent = FindComponentByClass<UVisitAreaComponent>();
-	
-	//Register workarea with WorkAreaManager
-	if (UWorkAreaManager* Subsystem = GetWorld()->GetSubsystem<UWorkAreaManager>())
-	{
-		Subsystem->RegisterWorkArea(this);
-	}
+	//Defer to ensure workstations are initialized before gathering them
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, this, &AWorkAreaBase::GatherWorkStations, 0.2f, false);
 }
 
 void AWorkAreaBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -112,22 +78,59 @@ void AWorkAreaBase::Tick(float DeltaTime)
 
 void AWorkAreaBase::GatherWorkStations()
 {
-	if (!WorkStationsRoot)
+	WorkStations.Empty();
+	CustomerWorkstations.Empty();
+	
+	if (!WorkAreaExtents)
 	{
 		return;
 	}
-	WorkStations.Empty();
 
-	TArray<USceneComponent*> WorkstationChildren;
-	WorkStationsRoot->GetChildrenComponents(false, WorkstationChildren);
+	TArray<AActor*> OverlappingActors;
+	WorkAreaExtents->GetOverlappingActors(OverlappingActors, AInteractableBase::StaticClass());
 
-	for (const USceneComponent* ChildComp : WorkstationChildren)
+	for (AActor* Actor : OverlappingActors)
 	{
-		AActor* ChildCompOwner = ChildComp->GetOwner();
-		if (AInteractableBase* Interactable = Cast<AInteractableBase>(ChildCompOwner))
+		if (!Actor)
 		{
+			continue;
+		}
+		
+		if (AInteractableBase* Interactable = Cast<AInteractableBase>(Actor))
+		{
+			if (Interactable->FindComponentByClass<UTendingWorkstationComponent>())
+			{
+				CustomerWorkstations.Add(Interactable);
+			}
 			WorkStations.Add(Interactable);
 			UE_LOG(LogTemp, Log, TEXT("WorkStation added: %s"), *Interactable->GetName());
 		}
+		
+		// Find widget components to set area sign name:
+		TArray<UWidgetComponent*> WidgetComponents;
+		Actor->GetComponents<UWidgetComponent>(WidgetComponents);
+
+		for (UWidgetComponent* WidgetComp : WidgetComponents)
+		{
+			if (!WidgetComp)
+			{
+				continue;
+			}
+
+			UAreaSignWidget* AreaSignWidget = Cast<UAreaSignWidget>(WidgetComp->GetWidget());
+
+			if (!AreaSignWidget)
+			{
+				continue;
+			}
+
+			AreaSignWidget->SetName(WorkAreaName);
+		}
+	}
+	
+	//Register workarea with WorkAreaManager
+	if (UWorkAreaManager* Subsystem = GetWorld()->GetSubsystem<UWorkAreaManager>())
+	{
+		Subsystem->RegisterWorkArea(this);
 	}
 }

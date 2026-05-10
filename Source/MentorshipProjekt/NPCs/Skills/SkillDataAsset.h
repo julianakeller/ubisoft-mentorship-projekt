@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "SkillDataAsset.generated.h"
 
 /**
@@ -17,8 +18,8 @@ class MENTORSHIPPROJEKT_API USkillDataAsset : public UPrimaryDataAsset
 	
 public:
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Skill")
-	FName SkillName;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Skill", meta=(Categories="Skill"))
+	FGameplayTag SkillName;
 	
 	//How long the family member will be gone while acquiring the skill at aschool/academy
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Skill")

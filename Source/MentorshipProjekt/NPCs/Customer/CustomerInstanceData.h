@@ -3,14 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CustomerDataAsset.h"
 #include "MentorshipProjekt/NPCs/Customer/CustomerPreferences.h"
 #include "CustomerRelationship.h"
-#include "Household.h"
 #include "../NPCInstanceData.h"
 #include "CustomerDefaults.h"
 #include "CustomerHealthCondition.h"
 #include "CustomerProfession.h"
+#include "MentorshipProjekt/Tags/MPGameplayTags.h"
 #include "CustomerInstanceData.generated.h"
 
 struct FCustomerPreferences;
@@ -18,6 +17,7 @@ class UCustomerSimulationSubsystem;
 /**
  * 
  */
+
 USTRUCT(BlueprintType)
 struct FCustomerInstanceData : public FNPCInstanceData
 {
@@ -30,10 +30,10 @@ public:
 	FName CustomerName;
 	
 	UPROPERTY()
-	FGuid CustomerId;
+	FGuid CustomerId = FGuid();
 	
 	UPROPERTY()
-	FGuid HouseholdId;
+	FGuid HouseholdId = FGuid();
 	
 	//Key = other customer ID
 	TMap<FGuid, TSharedPtr<FCustomerRelationship>> Relationships;
@@ -64,7 +64,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Data")
 	FCustomerPreferences Preferences;
 	
-	void InitializeFromDataAsset()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Data")
+	bool bVisiting = false;
+	
+	void InitializeCustomer()
 	{
 		CustomerId = FGuid::NewGuid();
 		

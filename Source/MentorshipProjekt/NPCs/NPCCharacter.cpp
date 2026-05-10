@@ -20,10 +20,3 @@ void ANPCCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-
-void ANPCCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
-

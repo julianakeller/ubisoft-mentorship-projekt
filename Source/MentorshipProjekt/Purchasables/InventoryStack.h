@@ -1,10 +1,12 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "PurchasableQuality.h"
 #include "PurchasableFreshness.h"
 #include "PurchasableDefinition.h"
 #include "InventoryStack.generated.h"
+
+class UPurchasableInstance;
 
 USTRUCT(BlueprintType)
 struct FInventoryStackKey
@@ -58,3 +60,18 @@ FORCEINLINE uint32 GetTypeHash(const FInventoryStackKey& Key)
 		GetTypeHash((uint8)Key.Freshness)
 	);
 }
+
+USTRUCT(BlueprintType)
+struct FPurchaseResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<UPurchasableInstance*> Instances;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 AmountRemoved = 0;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 AmountRequested = 0;
+};

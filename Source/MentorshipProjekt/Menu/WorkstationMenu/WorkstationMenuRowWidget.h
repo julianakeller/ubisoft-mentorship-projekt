@@ -61,10 +61,10 @@ protected:
 	void OnEnableButtonClicked();
 
 	UFUNCTION()
-	void OnAmountValueChanged(float Value);
+	void OnAmountValueComitted(float Value, ETextCommit::Type CommitType);
 	
 	UFUNCTION()
-	void OnPriorityValueChanged(float Value);
+	void OnPriorityValueComitted(float Value, ETextCommit::Type CommitType);
 
 	void RefreshVisuals();
 };

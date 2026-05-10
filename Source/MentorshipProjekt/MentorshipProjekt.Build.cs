@@ -8,7 +8,19 @@ public class MentorshipProjekt : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "UMG", "InputCore", "EnhancedInput", "GameplayTags" });
+		PublicDependencyModuleNames.AddRange(new string[] 
+{ 
+    "Core", 
+    "CoreUObject", 
+    "Engine", 
+    "UMG", 
+    "InputCore", 
+    "EnhancedInput", 
+    "GameplayTags", 
+    "NavigationSystem",
+    "AIModule",
+    "GameplayTasks"
+});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 

@@ -7,12 +7,17 @@
 #include "MentorshipProjekt/Purchasables/PurchasableManagerSubsystem.h"
 #include "PlayerProductionComponent.generated.h"
 
+class APlayableFamilyMemberCharacter;
+class USingleStageProductionComponent;
+class ATopDownCharacter;
 struct FWorkstationProductionSetting;
 class UGameTimeSubsystem;
 class UInteractableWorkstationComponent;
+
 /**
  * 
  */
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class MENTORSHIPPROJEKT_API UPlayerProductionComponent : public UInteractableComponentBase
 {
@@ -21,41 +26,17 @@ class MENTORSHIPPROJEKT_API UPlayerProductionComponent : public UInteractableCom
 public:
 	UPlayerProductionComponent();
 	
-	void StartProduction();
-
-	void StopProduction();
-	
 protected:
 	
 	virtual void BeginPlay() override;
 	
 	//Triggered by Q (secondary interaction button)
 	virtual void OnInteractSecondary(AActor* Interactor) override;
-
-	UPROPERTY()
-	UInteractableWorkstationComponent* ProductionWorkstation;
-
-	UPROPERTY()
-	AActor* ProducingPlayer;
-
-	FTimerHandle ProductionTimerHandle;
-
-	void ProduceNextItem();
-
-	void OnProductionComplete();
-
-	bool bIsProducing = false;
 	
 private:
 	
-	// Current workstation setting being produced
-	FWorkstationProductionSetting* CurrentSetting = nullptr;
+	void HandleProductionFinished(APlayableFamilyMemberCharacter* Interactor);
 	
-	UPROPERTY()
-	UGameTimeSubsystem* GameTimeSubsystem;
-
-	UPROPERTY()
-	UPurchasableManagerSubsystem* PurchasableManager;
+	bool ShouldContinueProducing() const;
 	
-	URecipeDefinition* Recipe = nullptr;
 };

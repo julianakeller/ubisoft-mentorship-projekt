@@ -1,64 +1,41 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "InteractionWidget.h"
 
-#include "Components/Image.h"
-#include "Components/TextBlock.h"
+#include "InteractionRowWidget.h"
 
-void UInteractionWidget::UpdateButtonImage(FPlatformUserId UserId, FInputDeviceId InputDeviceId)
+void UInteractionWidget::PopulateRows(TArray<FInteractionEntry> Rows, bool bIsInteracting)
 {
-	if (!InputDeviceSubsystem)
+	if (!InteractionWidgetRowContainer)
 	{
 		return;
 	}
-	
-	FHardwareDeviceIdentifier HardwareDeviceIdentifier = InputDeviceSubsystem->GetMostRecentlyUsedHardwareDevice(UserId);
-	
-	if (UTexture2D** TextureFound = DeviceNameToTexture.Find(HardwareDeviceIdentifier.HardwareDeviceIdentifier))
-	{
-		ButtonImage->SetBrushFromTexture(*TextureFound);
-		return;
-	}
-}
 
-void UInteractionWidget::UpdateInteractionText(FText NewInteractionText)
-{
-	InteractionText->SetText(NewInteractionText);
-}
+	InteractionWidgetRowContainer->ClearChildren();
 
-void UInteractionWidget::NativeConstruct()
-{
-	Super::NativeConstruct();
-	
-	InputDeviceSubsystem = GEngine->GetEngineSubsystem<UInputDeviceSubsystem>();
-	
-	if (!InputDeviceSubsystem)
+	if (!InteractionRowWidgetClass.IsValid())
+	{
+		InteractionRowWidgetClass.LoadSynchronous();
+	}
+
+	UClass* RowClass = InteractionRowWidgetClass.Get();
+
+	if (!RowClass)
 	{
 		return;
 	}
-	
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
-	
-	if (!PlayerController)
-	{
-		return;
-	}
-	
-	FPlatformUserId UserId = PlayerController->GetPlatformUserId();
-	
-	FInputDeviceId InputDeviceId;
-	
-	UpdateButtonImage(UserId, InputDeviceId);
-	
-	// Prevent duplicate binding by removing first
-	InputDeviceSubsystem->OnInputHardwareDeviceChanged.RemoveDynamic(
-		this,
-		&UInteractionWidget::UpdateButtonImage
-	);
 
-	InputDeviceSubsystem->OnInputHardwareDeviceChanged.AddDynamic(
-		this,
-		&UInteractionWidget::UpdateButtonImage
-	);
+	for (const FInteractionEntry& Entry : Rows)
+	{
+		UInteractionRowWidget* RowWidget = CreateWidget<UInteractionRowWidget>(GetWorld(), RowClass);
+
+		if (!RowWidget)
+		{
+			continue;
+		}
+
+		RowWidget->SetupRow(Entry, bIsInteracting);
+
+		InteractionWidgetRowContainer->AddChildToVerticalBox(RowWidget);
+	}
 }

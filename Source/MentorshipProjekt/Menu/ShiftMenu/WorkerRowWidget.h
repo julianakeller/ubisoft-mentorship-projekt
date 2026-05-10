@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/TextBlock.h"
 #include "WorkerRowWidget.generated.h"
 
+class UShiftScheduleMenuWidget;
 class UWorkerTimelineWidget;
 /**
  * 
@@ -18,9 +20,15 @@ class MENTORSHIPPROJEKT_API UWorkerRowWidget : public UUserWidget
 public:
 	void NativeConstruct();
 	
-protected:
+	void InitializeRow(const FGuid& InWorkerID, const FText& InName, UShiftScheduleMenuWidget* InMenu);
+	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* CharacterNameText;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ExposeOnSpawn=true))
-	FName WorkerID;
+	FGuid WorkerID;
+	
+protected:
 	
 	//BindWidget -> worker timeline will be automatically assigned if name matches "WorkerTimeline"
 	UPROPERTY(meta = (BindWidget))

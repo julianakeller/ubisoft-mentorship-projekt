@@ -38,5 +38,6 @@ private:
 	
 	void PauseTime(bool Pause);
 	
+	UPROPERTY()
 	UGameTimeSubsystem* GameTimeSubsystem = nullptr;
 };

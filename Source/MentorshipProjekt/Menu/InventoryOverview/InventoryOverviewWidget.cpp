@@ -44,13 +44,18 @@ void UInventoryOverviewWidget::RebuildInventory()
 	
 	if (!InventoryContainer || !PurchasableManager)
 	{
+		UE_LOG(LogTemp, Error, TEXT("Can't build inventory overview due to missing container or PurchasableManager."));
 		return;
 	}
 
 	InventoryContainer->ClearChildren();
 
 	UWorld* World = GetWorld();
-	if (!World) return;
+	if (!World)
+	{
+		UE_LOG(LogTemp, Error, TEXT("InventoryOverviewWidget: World not found."));
+		return;
+	}
 
 	TMap<UPurchasableDefinition*, int32> Purchasables = PurchasableManager->GetAllPurchasables();
 
@@ -59,17 +64,28 @@ void UInventoryOverviewWidget::RebuildInventory()
 		UPurchasableDefinition* Definition = Pair.Key;
 		int32 Amount = Pair.Value;
 
-		if (!Definition || !InventoryItemWidgetClass)
+		if (!Definition)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("InventoryOverviewWidget: No definition found."));
+			continue;
+		}
+		if (!InventoryItemWidgetClass)
+		{
+			UE_LOG(LogTemp, Error, TEXT("InventoryOverviewWidget: InventoryItemWidgetClass not found."));
 			continue;
 		}
 
 		UInventoryItemWidget* ItemWidget = CreateWidget<UInventoryItemWidget>(World, InventoryItemWidgetClass);
 
-		if (!ItemWidget) continue;
+		if (!ItemWidget)
+		{
+			UE_LOG(LogTemp, Error, TEXT("InventoryOverviewWidget: InventoryItemWidget could not be created."));
+			continue;
+		}
 
 		ItemWidget->InitializeItem(Definition, Amount);
 
 		InventoryContainer->AddChild(ItemWidget);
+		UE_LOG(LogTemp, Log, TEXT("InventoryOverviewWidget: Added Item to InventoryContainer."));
 	}
 }

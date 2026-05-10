@@ -4,10 +4,29 @@
 void AMyPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// Enable clicking on UI icons while in third person navigation
+	/*
+	bShowMouseCursor = true;
+
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+	SetInputMode(InputMode);
+	*/
 
 	if (GameTimeWidgetClass)
 	{
 		UUserWidget* Widget = CreateWidget<UUserWidget>(GetWorld(), GameTimeWidgetClass);
+		if (Widget)
+		{
+			Widget->AddToViewport();
+		}
+	}
+	if (EconomyOverviewWidgetClass)
+	{
+		UUserWidget* Widget = CreateWidget<UUserWidget>(GetWorld(), EconomyOverviewWidgetClass);
 		if (Widget)
 		{
 			Widget->AddToViewport();

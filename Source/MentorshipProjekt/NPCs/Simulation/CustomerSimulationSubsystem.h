@@ -10,6 +10,7 @@
 #include "MentorshipProjekt/NPCs/Customer/CustomerRelationship.h"
 #include "CustomerSimulationSubsystem.generated.h"
 
+class ACustomerCharacter;
 class ULogSubsystem;
 class URelationshipRuleDataAsset;
 struct FInGameTime;
@@ -20,42 +21,38 @@ UCLASS()
 class MENTORSHIPPROJEKT_API UCustomerSimulationSubsystem : public UNPCSimulationSubsystem
 {
 	GENERATED_BODY()
-	//Trigger visit scheduling
-	//Update preferences
-	//Background life simulation
 	
 public:
 	
-	// ---------Customer spawning settings:---------
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	
+	// ---------Customer spawning settings:------------
 
 	UPROPERTY(EditAnywhere)
-	float BaseSpawnChance = 1.f;
+	float BaseSpawnChance = 0.05f;
 	
 	// Chance Increase of spawning new customer per in game hour
 	UPROPERTY(EditAnywhere)
-	float BaseSpawnChanceIncrease = 0.25f;
+	float BaseSpawnChanceIncrease = 0.01f;
 	
 	// Damping factor controls how strongly existing customers slow growth
 	UPROPERTY(EditAnywhere)
-	float DampingFactor = 0.5f; 
+	float DampingFactor = 1.f; 
 	
 	UPROPERTY(EditAnywhere)
 	int32 MaximumCustomerCount = 400;
 	
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	void DespawnCustomer(const FGuid& CustomerId);
 
-	void OnMinuteChanged(const FInGameTime& NewTime) override;
-	void OnHourChanged(const FInGameTime& NewTime) override;
-	void OnDayChanged(const FInGameTime& NewTime) override;
-	void OnWeekChanged(const FInGameTime& NewTime) override;
-	void OnMonthChanged(const FInGameTime& NewTime) override;
+	// ---------Time Change Handlers:------------
 	
-	//ToDo Add function: Modify Customer Funds (by customer id)
-	//ToDo Add function: Set customer funds
+	virtual void OnMinuteChanged(const FInGameTime& NewTime) override;
+	virtual void OnHourChanged(const FInGameTime& NewTime) override;
+	virtual void OnDayChanged(const FInGameTime& NewTime) override;
+	virtual void OnWeekChanged(const FInGameTime& NewTime) override;
+	virtual void OnMonthChanged(const FInGameTime& NewTime) override;
 	
 	FHousehold* GetHouseholdById(const FGuid& Id);
-	
-private:
 	
 	// --------Instace Maps:------------
 	UPROPERTY()
@@ -64,7 +61,26 @@ private:
 	UPROPERTY()
 	TMap<FGuid, FHousehold> Households;
 	
-	// ------------Data Assets for selecting random Customer Stats:----------
+	// ------------Hosuehold functions:------------
+	
+	void UpdateHouseholdInventory(FHousehold& Household);
+	
+	void UpdateHouseholdShoppingList(FHousehold& Household);
+	
+	void ModifyHouseholdFunds(const FGuid& HouseholdId, float FundsToAdd);
+	
+	float GetHouseholdFunds(const FGuid& Id);
+	
+	void AddPurchasablesToHousehold(const FGuid& HouseholdId, const TArray<UPurchasableInstance*>& Purchasables);
+	
+	TMap<FGameplayTag, FDesiredTagEntry>* GetHouseholdShoppingList(const FGuid& HouseholdId);
+	
+	TMap<FGameplayTag, FDesiredTagEntry>* GetCustomerShoppingList(const FGuid& CustomerId);
+	
+private:
+	
+	// ------------Data Assets for selecting random Customer Stats:------------
+	
 	UPROPERTY(EditDefaultsOnly)
 	TArray<TSoftObjectPtr<UProfessionDataAsset>> ProfessionDataAssets;
 	
@@ -76,27 +92,32 @@ private:
 	
 	TMap<ERelationshipTypes, TArray<FRelationshipTransitionRule>> RulesByType;
 	
-	// ---------Functions for initializing data assets:
+	// ------------For Spawning Customers in Level:------------
+	UPROPERTY()
+	TSoftClassPtr<ACustomerCharacter> CustomerCharacterSoftClass;
+
+	UPROPERTY()
+	TSubclassOf<ACustomerCharacter> CustomerCharacterClass;
+
+	UPROPERTY()
+	TArray<AActor*> CustomerSpawnPoints;
+	
+	void LoadCustomerCharacterClass();
+	
+	void CacheSpawnPoints(UWorld* World);
+	
+	int32 SpawnedCustomersCount = 0;
+	
+	// ---------Functions for initializing data assets:------------
 	
 	void LoadCustomerDataAssets();
 	
 	void BuildTransitionMap();
 	
-	// -----------Functions for simulating customers:
-	
-	void UpdateCustomersHourly();
-	void UpdateCustomersDaily();
-	void UpdateCustomersWeekly();
-	void UpdateCustomersMonthly();
+	// -----------Functions for simulating customers:------------
 	
 	//Update age
 	void UpdateCustomerAge(FCustomerInstanceData& Customer, FInGameTime NewTime);
-	
-	//Update funds
-	void UpdateCustomerFunds(FCustomerInstanceData& Customer);
-	
-	//Update inventory
-	void SimulateCustomerInventory(FCustomerInstanceData& Customer);
 	
 	// Update health
 	void SimulateHealth(FCustomerInstanceData& Customer, FInGameTime NewTime);
@@ -112,9 +133,10 @@ private:
 	void SimulateProfessionChanges(FCustomerInstanceData& Customer);
 	
 	//Schedule next visit
-	void ScheduleVisit(FCustomerInstanceData& Customer);
+	void ScheduleVisit();
 	
-	// -------------Functions for creating customers:
+	// -------------Functions for creating customers:------------
+	
 	void CreateCustomerInstance();
 	
 	UFUNCTION()
@@ -126,13 +148,7 @@ private:
 	
 	void SelectNewCustomerProfession(FCustomerInstanceData& Customer);
 	
-	// ------------Hosuehold functions:------------
-	
-	void ModifyHouseholdFunds(const FGuid* Id, float FundsToAdd);
-	
-	float GetHouseholdFunds(const FGuid* Id);
-	
-	// --------------Relationship functions:
+	// --------------Relationship functions:------------
 	
 	FCustomerRelationship* GetOrCreateRelationship(FCustomerInstanceData& CustomerA, FCustomerInstanceData& CustomerB);
 	

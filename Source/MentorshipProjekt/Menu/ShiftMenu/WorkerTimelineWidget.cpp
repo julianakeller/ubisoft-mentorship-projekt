@@ -6,8 +6,9 @@
 #include "Components/CanvasPanel.h"
 #include "Shifts/ShiftManager.h"
 #include "Components/CanvasPanelSlot.h"
+#include "ShiftScheduleMenuWidget.h"
 
-float UWorkerTimelineWidget::GetHourFromLocalX(float LocalX, float Width) const
+float UWorkerTimelineWidget::GetHourFromLocalX(float LocalX) const
 {
 	return FMath::Clamp((LocalX / Width) * 24.f, 0.f, 24.f);
 }
@@ -30,22 +31,32 @@ void UWorkerTimelineWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (const UGameInstance* GI = GetGameInstance())
+	ShiftManager = GetWorld()->GetSubsystem<UShiftManager>();
+	if (ShiftManager)
 	{
-		ShiftManager = GI->GetSubsystem<UShiftManager>();
 		ShiftManager->AddWorkerIfMissing(WorkerID);
 	}
+	
+	bShiftsLoaded = false;
 }
 
 FReply UWorkerTimelineWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
+	if (!ParentMenu)
+		return FReply::Unhandled();
+
+	FName SelectedArea = ParentMenu->SelectedWorkArea;
+	if (SelectedArea.IsNone())
+		return FReply::Unhandled();
+	
 	if (!InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
 		return FReply::Unhandled();
 
 	const float LocalX = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()).X;
-	const float Width = InGeometry.GetLocalSize().X;
+	Width = InGeometry.GetLocalSize().X;
+	Height = InGeometry.GetLocalSize().Y;
 
-	const float Hour = GetHourFromLocalX(LocalX, Width);
+	const float Hour = GetHourFromLocalX(LocalX);
 	
 	if (IsOverExistingShift(Hour))
 		return FReply::Unhandled();
@@ -57,7 +68,6 @@ FReply UWorkerTimelineWidget::NativeOnMouseButtonDown(const FGeometry& InGeometr
 	TempShift = CreateWidget<UShiftBlockWidget>(GetWorld(), ShiftBlockClass);
 	TimelineCanvas->AddChild(TempShift);
 
-	const float Height = InGeometry.GetLocalSize().Y;
 	TempShift->InitializeShift(Hour, Hour+1, Width, Height, this);
 
 	return FReply::Handled().CaptureMouse(TakeWidget());
@@ -69,17 +79,17 @@ FReply UWorkerTimelineWidget::NativeOnMouseMove(const FGeometry& InGeometry, con
 		return FReply::Unhandled();
 
 	const float LocalX = InGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition()).X;
-	const float Width = InGeometry.GetLocalSize().X;
+	Width = InGeometry.GetLocalSize().X;
+	Height = InGeometry.GetLocalSize().Y;
 
 	//Hour for the current mouse position:
-	float CurrentHour = GetHourFromLocalX(LocalX, Width);
+	float CurrentHour = GetHourFromLocalX(LocalX);
 	CurrentHour = UShiftBlockWidget::SnapToQuarterHour(CurrentHour);
 	
 	//Determine start and end of the new shift:
 	const float Start = FMath::Min(CreationStartHour, CurrentHour);
 	const float End = FMath::Max(CreationStartHour, CurrentHour);
 	
-	float Height = InGeometry.GetLocalSize().Y;
 	TempShift->SetStartHour(Start);
 	TempShift->SetEndHour(End);
 
@@ -101,22 +111,43 @@ FReply UWorkerTimelineWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry,
 	
 	if (ShiftManager)
 	{
-		FShiftData* NewShiftPtr = ShiftManager->AddNewShift(WorkerID, Start, End);
+		FShiftData NewShift;
+		NewShift.StartHour = Start;
+		NewShift.EndHour = End;
+		NewShift.AssignedArea = ParentMenu->SelectedWorkArea;
 
+		FShiftData* NewShiftPtr = ShiftManager->AddShift(WorkerID, NewShift);
+		
 		if (NewShiftPtr)
 		{
-			// Save pointer to shift data in newly created shift widget
 			TempShift->SetLinkedShiftData(NewShiftPtr);
+			TempShift->InitializeShiftAppearance();
 		}
 		else
 		{
-			//Failed to create/add shift data
 			TimelineCanvas->RemoveChild(TempShift);
 			TempShift = nullptr;
 		}
 	}
 	
 	return FReply::Handled().ReleaseMouseCapture();
+}
+
+void UWorkerTimelineWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (!bShiftsLoaded)
+	{
+		Width = MyGeometry.GetLocalSize().X;
+		Height = MyGeometry.GetLocalSize().Y;
+
+		if (Width > 0.f)
+		{
+			bShiftsLoaded = true;
+			LoadShiftsFromShiftManager();
+		}
+	}
 }
 
 void UWorkerTimelineWidget::LogShifts() const
@@ -147,4 +178,56 @@ bool UWorkerTimelineWidget::IsShiftOverlapping(const float Start, const float En
 		}
 	}
 	return false;
+}
+
+void UWorkerTimelineWidget::AddShiftBlock(FShiftData& ShiftData)
+{
+	if (!ShiftBlockClass || !TimelineCanvas)
+	{
+		return;
+	}
+
+	UShiftBlockWidget* ShiftBlock = CreateWidget<UShiftBlockWidget>(GetWorld(), ShiftBlockClass);
+	if (!ShiftBlock)
+	{
+		return;
+	}
+
+	TimelineCanvas->AddChild(ShiftBlock);
+
+	ShiftBlock->InitializeShift(ShiftData.StartHour, ShiftData.EndHour, Width, Height, this);
+	ShiftBlock->SetLinkedShiftData(&ShiftData);
+	ShiftBlock->InitializeShiftAppearance(); // handles color from AssignedArea
+}
+
+void UWorkerTimelineWidget::LoadShiftsFromShiftManager()
+{
+	if (!ShiftManager || !TimelineCanvas)
+	{
+		return;
+	}
+
+	TArray<UWidget*> ToRemove;
+	for (UWidget* Child : TimelineCanvas->GetAllChildren())
+	{
+		if (Cast<UShiftBlockWidget>(Child))
+		{
+			ToRemove.Add(Child);
+		}
+	}
+	for (UWidget* Widget : ToRemove)
+	{
+		TimelineCanvas->RemoveChild(Widget);
+	}
+
+	FWorkerSchedule* Schedule = ShiftManager->GetWorkerSchedule(WorkerID);
+	if (!Schedule)
+	{
+		return;
+	}
+
+	for (FShiftData& Shift : Schedule->Shifts)
+	{
+		AddShiftBlock(Shift);
+	}
 }

@@ -8,7 +8,7 @@
 #include "MentorshipProjekt/NPCs/Customer/ProfessionDataAsset.h"
 #include "MentorshipProjekt/Purchasables/RecipeDefinition.h"
 #include "MentorshipProjekt/Purchasables/PurchasableDefinition.h"
-#include "MentorshipProjekt/NPCs/FamilyMemberDataAsset.h"
+#include "MentorshipProjekt/NPCs/FamilyMember/FamilyMemberDataAsset.h"
 #include "MentorshipProjekt/NPCs/Customer/RelationshipRuleDataAsset.h"
 #include "MentorshipProjekt/NPCs/Customer/HealthConditionDataAsset.h"
 #include "MentorshipProjekt/NPCs/Skills/SkillDataAsset.h"

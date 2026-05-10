@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "GameplayTagContainer.h"
-#include "GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "PurchasableDefinition.h" 
 #include "PurchasableQuality.h"
 #include "PurchasableFreshness.h" 
@@ -17,6 +17,7 @@
  * 
  */
 
+struct FRecipeIngredient;
 class UGameTimeSubsystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChanged);
@@ -31,11 +32,18 @@ public:
 	virtual void Deinitialize() override;
 	
 	UFUNCTION(BlueprintCallable, Category="Inventory")
-	UPurchasableInstance* ProducePurchasable(UPurchasableDefinition* Definition, int32 WorkerSkillLevel);
+	UPurchasableInstance* ProducePurchasable(UPurchasableDefinition* Definition, int32 WorkerSkillLevel, int32 Amount = 1);
 	
 	//Removes Purchasable from inventory if available
 	UFUNCTION(BlueprintCallable, Category="Inventory")
 	bool RemovePurchasableIfAvailable(UPurchasableDefinition* Definition, int32 Count);
+	
+	//Removes Purchasable from inventory if available
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool RemoveIngredientsIfAvailable(TArray<FRecipeIngredient> Ingredients);
+	
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool IngredientsAvailable(TArray<FRecipeIngredient> Ingredients);
 	
 	// ToDo remove purchasables with specific quality, freshness or value
 	
@@ -58,6 +66,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnInventoryChanged OnInventoryChanged;
 	
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	FPurchaseResult TakePurchasables(UPurchasableDefinition* Definition, int32 RequestedCount);
+	
 private:
 
 	UPROPERTY()
@@ -72,4 +83,6 @@ private:
 	void UpdateStackFreshness(FInventoryStack& Stack, FInGameTime CurrentTime) const;
 
 	void RemoveExpiredItems(FInventoryStack& Stack);
+	
+	void CleanupEmptyStacks();
 };

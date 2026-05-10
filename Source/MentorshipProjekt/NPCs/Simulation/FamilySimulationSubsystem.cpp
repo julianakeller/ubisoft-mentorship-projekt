@@ -2,18 +2,32 @@
 
 
 #include "FamilySimulationSubsystem.h"
-#include "GameTimeSubsystem.h"
+
+#include "EngineUtils.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
+#include "MentorshipProjekt/NPCs/FamilyMember/FamilyMemberCharacter.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#include "MentorshipProjekt/NPCs/FamilyInstanceData.h"
+#include "Kismet/GameplayStatics.h"
+#include "MentorshipProjekt/NPCs/FamilyMember/FamilyInstanceData.h"
+#include "MentorshipProjekt/NPCs/SpawnPoints/FamilyMemberSpawnPoint.h"
 
 void UFamilySimulationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	Super::Initialize(Collection);
 	
-	FCoreDelegates::OnPostEngineInit.AddLambda([this]()
-	{
-		InitializeFamilyMembers();
-	});
+	
+	Super::Initialize(Collection);
+
+	UE_LOG(LogTemp, Warning, TEXT("Subsystem Init World: %s"), *GetWorld()->GetName());
+	UE_LOG(LogTemp, Warning, TEXT("FamilySimulationSubsystem initialized"));
+	
+	FTimerHandle Handle;
+	GetWorld()->GetTimerManager().SetTimer(
+		Handle,
+		this,
+		&UFamilySimulationSubsystem::InitializeFamilyMembers,
+		0.5f,
+		false
+	);
 }
 
 #pragma region Initializing Family Member Instances
@@ -21,6 +35,14 @@ void UFamilySimulationSubsystem::Initialize(FSubsystemCollectionBase& Collection
 // Gets all family member data assets and uses them to initialize family member instances
 void UFamilySimulationSubsystem::InitializeFamilyMembers()
 {
+	if (bInitializedFamilyMembers)
+	{
+		return;
+	}
+
+	FamilyMembers.Empty();
+	bInitializedFamilyMembers = true;
+	
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	
@@ -29,7 +51,8 @@ void UFamilySimulationSubsystem::InitializeFamilyMembers()
 	FARFilter FilterFamilyMemberDataAssets;
 	FilterFamilyMemberDataAssets.ClassPaths.Add(UFamilyMemberDataAsset::StaticClass()->GetClassPathName());
 	FilterFamilyMemberDataAssets.bRecursivePaths = true;
-	FilterFamilyMemberDataAssets.PackagePaths.Add("/Game/Data/FamilyMembers"); 
+	FilterFamilyMemberDataAssets.bRecursiveClasses = true;
+	FilterFamilyMemberDataAssets.PackagePaths.Add("/Game/Data/FamilyMembers");
 
 	TArray<FAssetData> AssetListFamilyMembers;
 	AssetRegistry.GetAssets(FilterFamilyMemberDataAssets, AssetListFamilyMembers);
@@ -43,6 +66,10 @@ void UFamilySimulationSubsystem::InitializeFamilyMembers()
 			UE_LOG(LogTemp, Log, TEXT("Loaded Family Member: %s"), *Asset->FamilyMemberName.ToString()); //FName::ToString() returns an FString. FString overloads operator *() to return const TCHAR*. %s in UE_LOG expects const TCHAR*.
 			AddFamilyMember(Asset);
 		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("FamilySimulationSubsystem: Cast unsuccessful."));
+		}
 	}
 	
 	if (FamilyMembers.Num() == 0)
@@ -53,8 +80,53 @@ void UFamilySimulationSubsystem::InitializeFamilyMembers()
 
 void UFamilySimulationSubsystem::AddFamilyMember(const UFamilyMemberDataAsset* DataAsset)
 {
-	const int32 Index = FamilyMembers.AddDefaulted();
-	FamilyMembers[Index].InitializeFromDataAsset(DataAsset);
+	/*const int32 Index = FamilyMembers.AddDefaulted();
+	FamilyMembers[Index].InitializeFromDataAsset(DataAsset);*/
+	
+	FFamilyInstanceData NewMember;
+	NewMember.InitializeFromDataAsset(DataAsset);
+
+	const FGuid Id = FGuid::NewGuid();
+	FamilyMembers.Add(Id, NewMember);
+
+	SpawnFamilyMemberCharacter(Id, DataAsset);
+}
+
+void UFamilySimulationSubsystem::SpawnFamilyMemberCharacter(const FGuid& Id, const UFamilyMemberDataAsset* DataAsset)
+{
+	if (!DataAsset || !DataAsset->CharacterClass)
+	{
+		return;
+	}
+	
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (FamilyMemberSpawnPoints.Num() == 0)
+	{
+		CacheSpawnPoints(World);
+	}
+
+	if (FamilyMemberSpawnPoints.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UCustomerSimulationSubsystem: No CustomerSpawnPoints found"));
+		return;
+	}
+	
+	AActor* SpawnPoint = FamilyMemberSpawnPoints[FMath::RandRange(0, FamilyMemberSpawnPoints.Num() - 1)];
+
+	AFamilyMemberCharacter* Character = World->SpawnActorDeferred<AFamilyMemberCharacter>(DataAsset->CharacterClass, SpawnPoint->GetActorTransform(), nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+
+	if (Character)
+	{
+		FFamilyInstanceData* Instance = FamilyMembers.Find(Id);
+		Character->Initialize(Instance, Id);
+		
+		UGameplayStatics::FinishSpawningActor(Character, SpawnPoint->GetActorTransform());
+	}
 }
 
 #pragma endregion
@@ -69,8 +141,9 @@ void UFamilySimulationSubsystem::OnMinuteChanged(const FInGameTime& NewTime)
 
 	while (AccumulatedMinutes >= StepSize)
 	{
-		for (FFamilyInstanceData& Member : FamilyMembers)
+		for (TPair<FGuid, FFamilyInstanceData>& Pair : FamilyMembers)
 		{
+			FFamilyInstanceData& Member = Pair.Value;
 			SimulateFamilyMember(Member, NewTime, LastUpdateMinute);
 		}
 		LastUpdateMinute = NewTime;
@@ -84,12 +157,12 @@ void UFamilySimulationSubsystem::SimulateFamilyMember(FFamilyInstanceData& Famil
 	
 	// Needs decay:
 	// ToDo: move decay rates to FamilyMemberDataAsset for individual (personality based) decay rates
-	//constexpr float EnergyDecay = -0.2f;
-	constexpr float EnergyDecay = -100.f; // ToDo Testing
-	//constexpr float SocialDecay = -0.1f;
-	constexpr float SocialDecay = -100.f; // ToDo Testing
-	//constexpr float RecreationDecay = -0.15f;
-	constexpr float RecreationDecay = -100.f; // ToDo Testing
+	constexpr float EnergyDecay = -0.2f;
+	//constexpr float EnergyDecay = -100.f; // ToDo Testing
+	constexpr float SocialDecay = -0.1f;
+	//constexpr float SocialDecay = -100.f; // ToDo Testing
+	constexpr float RecreationDecay = -0.15f;
+	//constexpr float RecreationDecay = -100.f; // ToDo Testing
 
 	float DeltaMinutes = FInGameTime::DifferenceInMinutes(NewTime, LastUpdate);
 	
@@ -146,6 +219,20 @@ void UFamilySimulationSubsystem::LogFamilyMemberExtremeStats(FFamilyInstanceData
 		{
 			FamilyMember.bLoggedHappiness = false;
 		}
+	}
+}
+
+#pragma endregion
+
+#pragma region Family Member Spawning
+
+void UFamilySimulationSubsystem::CacheSpawnPoints(UWorld* World)
+{
+	FamilyMemberSpawnPoints.Empty();
+
+	for (TActorIterator<AActor> It(World, AFamilyMemberSpawnPoint::StaticClass()); It; ++It)
+	{
+		FamilyMemberSpawnPoints.Add(*It);
 	}
 }
 

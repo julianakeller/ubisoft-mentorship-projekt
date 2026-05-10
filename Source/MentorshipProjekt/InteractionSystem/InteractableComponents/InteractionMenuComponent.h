@@ -15,6 +15,8 @@ class MENTORSHIPPROJEKT_API UInteractionMenuComponent : public UInteractableComp
 {
 	GENERATED_BODY()
 	
+	virtual void BeginPlay() override;
+	
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

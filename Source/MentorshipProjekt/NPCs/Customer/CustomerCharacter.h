@@ -4,9 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "../NPCCharacter.h"
-#include "../AI/CustomerBrainComponents.h"
+#include "../AI/BrainComponents/CustomerBrainComponent.h"
 #include "GameFramework/Character.h"
 #include "CustomerCharacter.generated.h"
+
+class UCustomerInformationDisplayWidget;
+struct FCustomerInstanceData;
 
 UCLASS()
 class MENTORSHIPPROJEKT_API ACustomerCharacter : public ANPCCharacter
@@ -16,16 +19,27 @@ class MENTORSHIPPROJEKT_API ACustomerCharacter : public ANPCCharacter
 public:
 	ACustomerCharacter();
 
-protected:
+	void Initialize(FGuid InCustomerInstanceId);
+	
 	virtual void BeginPlay() override;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="AI")
-	UCustomerBrainComponents* BrainComponent; //Visit behavior
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="AI")
+	//UCustomerBrainComponent* CustomerBrainComponent; //Visit behavior
 
-public:	
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	FCustomerInstanceData GetInstanceData() const;
+	FCustomerInstanceData* GetInstanceDataRef();
 
+	UPROPERTY()
+	FGuid CustomerId;
+	
+	UPROPERTY(VisibleAnywhere)
+	int32 SuccessfulPurchases = 0;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UWidgetComponent* CustomerInformationDisplayWidget;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UCustomerInformationDisplayWidget* CustomerInformationDisplay;
 };

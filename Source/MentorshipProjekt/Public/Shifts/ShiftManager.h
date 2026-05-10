@@ -11,53 +11,68 @@
  * 
  */
 
+struct FInGameTime;
+class UGameTimeSubsystem;
+
 USTRUCT(BlueprintType)
 struct FWorkerSchedule
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FName WorkerID;  //FName is faster for comparisions and better suited for identifiers as FString
+	FGuid WorkerID;  //FName is faster for comparisions and better suited for identifiers as FString
 
 	UPROPERTY()
 	TArray<FShiftData> Shifts;
 	
 	FWorkerSchedule() {}
-	FWorkerSchedule(const FName InWorkerID) : WorkerID(InWorkerID) {}
+	FWorkerSchedule(const FGuid InWorkerID) : WorkerID(InWorkerID) {}
 };
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnShiftStateChanged, FGuid, const FShiftData*); // WorkerId and new Shift as parameters
+
 UCLASS()
-class MENTORSHIPPROJEKT_API UShiftManager : public UGameInstanceSubsystem
+class MENTORSHIPPROJEKT_API UShiftManager : public UWorldSubsystem
 {
 	GENERATED_BODY()
 	
 public:
+	void Initialize(FSubsystemCollectionBase& Collection) override;
 	
-	FWorkerSchedule* GetWorkerSchedule(FName WorkerID);
+	FOnShiftStateChanged OnShiftStateChanged;
 	
-	FShiftData* AddShift(FName WorkerID, FShiftData& NewShift);
+	FWorkerSchedule* GetWorkerSchedule(FGuid WorkerID);
 	
-	FShiftData* AddNewShift(FName WorkerID, float Start, float End);
+	FShiftData* AddShift(FGuid WorkerID, FShiftData& NewShift);
+	
+	FShiftData* AddNewShift(FGuid WorkerID, float Start, float End);
 
 	UFUNCTION(BlueprintCallable)
-	bool RemoveShift(FName WorkerID, int32 ShiftIndex);
+	bool RemoveShift(FGuid WorkerID, int32 ShiftIndex);
 
 	UFUNCTION(BlueprintCallable)
-	bool UpdateShift(FName WorkerID, int32 ShiftIndex, float NewStart, float NewEnd);
+	bool UpdateShift(FGuid WorkerID, int32 ShiftIndex, float NewStart, float NewEnd);
 	
 	UFUNCTION(BlueprintCallable)
-	bool AddWorkerIfMissing(FName WorkerID);
+	bool AddWorkerIfMissing(FGuid WorkerID);
+	
+	FShiftData* GetCurrentShift(FGuid WorkerID, int32 CurrentHour);
+
+	UFUNCTION()
+	void TickShifts(const FInGameTime& NewTime);
 	
 	//UFUNCTION(BlueprintCallable)
 	//bool AssignWorkAreaToShift(FName WorkerID, FShiftData Shift, FName WorkAreaID);
 	
 private:
-
-	//UPROPERTY()
-	//int32 NextShiftID = 1;
 	
 	UPROPERTY(VisibleAnywhere)
 	TArray<FWorkerSchedule> WorkerSchedules;
 	
+	// Tracks which shift is currently active for each worker
+	TMap<FGuid, int32> CurrentActiveShiftIndex;
+	
 	void LogShifts();
+	
+	UGameTimeSubsystem* GameTimeSubsystem;
 };

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "UObject/Object.h"
 #include "PurchasableDefinition.h"
 #include "PurchasableInstance.generated.h"

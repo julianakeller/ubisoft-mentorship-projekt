@@ -5,11 +5,9 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "InteractablesInterface.h"
-#include "InteractionWidget.h"
+#include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
 #include "InteractableBase.generated.h"
-
-class USphereComponent;
-class UWidgetComponent;
 
 UENUM(BlueprintType)
 enum class EInteractionState : uint8
@@ -41,12 +39,16 @@ public:
 	virtual void HandleInteraction(AActor* Character) override;
 	virtual void HandleInteractionSecondary(AActor* Character) override;
 	virtual bool CanBeInteracted() const override;
-	virtual void SetInteractionText(FText NewInteractionText) override;
-	virtual FText GetInteractionText() const override {return InteractionText;};
 	virtual void SetInteractionState(EInteractionState NewState);
 	virtual EInteractionState GetInteractionState() {return InteractionState;};
 	
-public:
+	UPROPERTY()
+	bool bPlayerInRange = false;
+	
+	EInteractionState InteractionState = EInteractionState::Idle;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UWidgetComponent* InteractionWidgetComponent = nullptr;
 	
 	//Delegates
 	UPROPERTY(BlueprintAssignable)
@@ -65,18 +67,11 @@ protected:
 	
 	virtual void BeginPlay() override;
 	
-	void UpdateWidgetVisibility();
-	
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	USphereComponent* InteractionRange = nullptr;
 	
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UStaticMeshComponent* InteractableMesh = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, Category = "Components")
-	UWidgetComponent* InteractionWidgetComponent = nullptr;
-	
-	EInteractionState InteractionState = EInteractionState::Idle;
 
 private:
 	
@@ -97,10 +92,4 @@ private:
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex
 	);
-	
-	UPROPERTY(EditAnywhere, Category = "Parameters")
-	FText InteractionText = FText::FromString("Interact");
-	
-	UPROPERTY()
-	UInteractionWidget* InteractionWidgetReference = nullptr;
 };

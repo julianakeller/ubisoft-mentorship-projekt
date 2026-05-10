@@ -10,14 +10,14 @@ struct FSkillProgress
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	//TObjectPtr used for UCLASS/USTRUCT member variables -> better garbage collection & debugging
 	TObjectPtr<USkillDataAsset> Skill;
 
-	UPROPERTY()
-	int32 CurrentLevel = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CurrentLevel = 1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentXP = 0.f;
 	
 	void AddXP(float XPAmount, float LearningMultiplier = 1.f)

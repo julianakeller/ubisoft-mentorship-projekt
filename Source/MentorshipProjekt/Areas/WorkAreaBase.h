@@ -7,6 +7,7 @@
 #include "Components/BoxComponent.h"
 #include "WorkAreaBase.generated.h"
 
+class UTextRenderComponent;
 class AInteractableBase;
 class AInteractableWorkStation;
 
@@ -18,40 +19,46 @@ class MENTORSHIPPROJEKT_API AWorkAreaBase : public AActor
 public:	
 	AWorkAreaBase();
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Work Area")
+	virtual void OnConstruction(const FTransform& Transform) override;
+	
+	UPROPERTY(EditAnywhere, Category = "Work Area")
 	FName WorkAreaName;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Work Area")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Work Area")
 	TArray<AInteractableBase*> WorkStations; //ToDo should be limited to interactables with workstation component only
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Work Area")
+	TArray<AInteractableBase*> CustomerWorkstations;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* Root;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Work Area")
 	USceneComponent* VisitorInteractablesRoot;
 	
+	virtual void Tick(float DeltaTime) override;
+
+	//Optional, assign if area is visitable by customers
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visit Area")
+	class UVisitAreaComponent* VisitAreaComponent; 
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Work Area")
+	FLinearColor WorkAreaColor = FLinearColor::White;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Work Area")
+	UBoxComponent* WorkAreaExtents;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Work Area")
+	UTextRenderComponent* WorkAreaLabel;
+	
 protected:
 	virtual void BeginPlay() override;
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
-	void OnConstruction(const FTransform& Transform) override;
-
 	//Container for workstations
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Work Area")
 	USceneComponent* WorkStationsRoot;
 
 	void GatherWorkStations();
-	
-public:	
-	virtual void Tick(float DeltaTime) override;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Visit Area")
-	class UVisitAreaComponent* VisitAreaComponent; //Optional, assign if area is visitable by customers
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
-	UBoxComponent* DebugBounds;
-	
-private:
-	void UpdateDebugBounds() const;
 };

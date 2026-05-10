@@ -39,6 +39,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Tags", meta=(Categories="Purchasable"))
 	FGameplayTagContainer ItemTags;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<UStaticMesh*> WorldMeshes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UMaterialInterface* WorldMaterial;
+	
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override
 	{
 		return FPrimaryAssetId("Purchasable", GetFName());

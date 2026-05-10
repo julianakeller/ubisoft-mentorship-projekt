@@ -2,7 +2,7 @@
 
 
 #include "NPCSimulationSubsystem.h"
-#include "MentorshipProjekt/Public/GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 
 void UNPCSimulationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {

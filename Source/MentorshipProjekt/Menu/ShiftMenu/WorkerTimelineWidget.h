@@ -10,6 +10,8 @@
  * 
  */
 
+struct FShiftData;
+class UShiftScheduleMenuWidget;
 class UShiftManager;
 class UCanvasPanel;
 class UShiftBlockWidget;
@@ -30,10 +32,21 @@ public:
 	
 	// Worker ID for this timeline
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn=true))
-	FName WorkerID;
+	FGuid WorkerID;
+	
+	UPROPERTY()
+	UShiftScheduleMenuWidget* ParentMenu;
+	
+	void LoadShiftsFromShiftManager();
+	
+	void AddShiftBlock(FShiftData& ShiftData);
+	
+	UPROPERTY()
+	UShiftManager* ShiftManager;
 	
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual FReply NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
@@ -43,12 +56,15 @@ private:
 	float CreationStartHour;
 	UShiftBlockWidget* TempShift;
 
-	float GetHourFromLocalX(float LocalX, float Width) const;
+	float GetHourFromLocalX(float LocalX) const;
 	bool IsOverExistingShift(float Hour) const;
 	
 	UFUNCTION()
 	void LogShifts() const;
 	
-	UPROPERTY()
-	UShiftManager* ShiftManager;
+	// Timeline dimensions:
+	float Width;
+	float Height;
+	
+	bool bShiftsLoaded = false;
 };

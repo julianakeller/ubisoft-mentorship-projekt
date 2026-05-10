@@ -37,14 +37,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TArray<FRecipeIngredient> Ingredients;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FName RequiredSkill;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Skill", meta=(Categories="Skill"))
+	FGameplayTag RequiredSkill;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	int32 RequiredSkillLevel = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FName RequiredWorkstationTag; //ToDo
+	FGameplayTag RequiredWorkstationTag;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float BaseProductionTimeInMinutes = 5.f;

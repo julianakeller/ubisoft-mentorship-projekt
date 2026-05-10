@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameTimeSubsystem.h"
+#include "MentorshipProjekt/GameTime/GameTimeSubsystem.h"
 #include "NPCSimulationSubsystem.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "MentorshipProjekt/NPCs/FamilyMember/FamilyInstanceData.h"
 #include "FamilySimulationSubsystem.generated.h"
 
-struct FFamilyInstanceData;
 class UFamilyMemberDataAsset;
 /**
  * 
@@ -24,17 +24,27 @@ public:
 
 	void OnMinuteChanged(const FInGameTime& NewTime) override;
 
-private:
 	UPROPERTY()
-	TArray<FFamilyInstanceData> FamilyMembers;
+	TMap<FGuid, FFamilyInstanceData> FamilyMembers;
+	
+private:
 	
 	void InitializeFamilyMembers();
 	
 	void AddFamilyMember(const UFamilyMemberDataAsset* DataAsset);
+	
+	void SpawnFamilyMemberCharacter(const FGuid& Id, const UFamilyMemberDataAsset* DataAsset);
 	
 	void SimulateFamilyMember(FFamilyInstanceData& FamilyMember, const FInGameTime& NewTime, FInGameTime& LastUpdate);
 	
 	void LogFamilyMemberExtremeStats(FFamilyInstanceData& FamilyMember);
 	
 	float AccumulatedMinutes = 0.0f;
+	
+	void CacheSpawnPoints(UWorld* World);
+	
+	UPROPERTY()
+	TArray<AActor*> FamilyMemberSpawnPoints;
+	
+	bool bInitializedFamilyMembers = false;
 };

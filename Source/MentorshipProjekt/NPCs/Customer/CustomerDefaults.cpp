@@ -12,7 +12,15 @@ const TArray<FString> FCustomerDefaults::MaleFirstNames =
 	TEXT("Fulk"), TEXT("Gawain"), TEXT("Hugh"), TEXT("Isidore"), TEXT("Jarvis"),
 	TEXT("Kael"), TEXT("Leander"), TEXT("Magnus"), TEXT("Nestor"), TEXT("Orin"),
 	TEXT("Percival"), TEXT("Quintus"), TEXT("Reynard"), TEXT("Stellan"), TEXT("Tristan"),
-	TEXT("Ulfric"), TEXT("Vincent"), TEXT("Wulfric"), TEXT("Xanthus"), TEXT("Yvain")
+	TEXT("Ulfric"), TEXT("Vincent"), TEXT("Wulfric"), TEXT("Xanthus"), TEXT("Yvain"),
+	TEXT("Radahn"),
+	TEXT("Radagon"),
+	TEXT("Mohg"),
+	TEXT("Godfrey"),
+	TEXT("Godrick"),
+	TEXT("Maliketh"),
+	TEXT("Morgott"),
+	TEXT("Rykard")
 };
 
 // Female first names:
@@ -27,7 +35,9 @@ const TArray<FString> FCustomerDefaults::FemaleFirstNames =
 	TEXT("Faramund"), TEXT("Griselda"), TEXT("Hildegard"), TEXT("Isabeau"), TEXT("Jessamine"),
 	TEXT("Kerensa"), TEXT("Lunetta"), TEXT("Melisande"), TEXT("Nimue"), TEXT("Odelia"),
 	TEXT("Philippa"), TEXT("Rosaline"), TEXT("Sabine"), TEXT("Tatiana"), TEXT("Ulrica"),
-	TEXT("Valeria"), TEXT("Wilhelmina"), TEXT("Ximena"), TEXT("Ysolde"), TEXT("Zuleika")
+	TEXT("Valeria"), TEXT("Wilhelmina"), TEXT("Ximena"), TEXT("Ysolde"), TEXT("Zuleika"),
+	TEXT("Malenia"),
+	TEXT("Rennala")
 };
 
 // Last names:

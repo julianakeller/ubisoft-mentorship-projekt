@@ -27,4 +27,9 @@ struct FShiftData
 
 	FShiftData() {}
 	FShiftData(const float InStart, const float InEnd) : StartHour(InStart), EndHour(InEnd) {}
+	
+	bool operator==(const FShiftData& Other) const
+	{
+		return StartHour == Other.StartHour && EndHour == Other.EndHour && AssignedArea == Other.AssignedArea;
+	}
 };
